@@ -1,0 +1,25 @@
+This program is a straightforward gps monitor program using the GTK+
+windowing system.
+
+It is copyright 2009-2010 Charles Curley, http://www.charlescurley.com/
+
+There isn't much to it, so thses notes should suffice:
+
+* The background changes color according to the quality of the fix.
+
+  * Red: No fix.
+
+  * Yellow: Two dimensional fix, i.e. altitude is invalid.
+
+  * Green: Three dimensional fix.
+
+* The number of satellites seen and used in fixes is shown in a
+  progress bar, where the progress bar shows the ratio of the two.
+
+* You can change how some of the data are displayed, e.g. speed in
+  miles per hour, knots or kilometers per hour. You can then save
+  these settings.
+
+* Menu functions have accelerator (shortcut) keys.
+
+* For automotive use, try a fairly large font, e.g. 17 to 25 points.
