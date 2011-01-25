@@ -1,4 +1,6 @@
-char *versionString = "Time-stamp: <2011-01-25 16:28:56 charles gnome-gps.c>";
+/* We'll call it version 1 when gpsd goes to version 3.0. */
+
+char *versionString = "0.9";
 
 /* A GTK program for showing the latest gps data using libgps. */
 
