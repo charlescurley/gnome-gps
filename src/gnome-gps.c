@@ -1,4 +1,4 @@
-char *versionString = "Time-stamp: <2011-01-16 15:57:50 charles gnome-gps.c>";
+char *versionString = "Time-stamp: <2011-01-25 16:28:56 charles gnome-gps.c>";
 
 /* A GTK program for showing the latest gps data using libgps. */
 
@@ -258,8 +258,7 @@ static void setDegrees( gpointer   callback_data,
                         guint      callback_action,
                         GtkWidget *menu_item );
 
-/* libgps callback. */
-void showData (struct gps_data_t *gpsdata, char *message, size_t len);
+void showData (struct gps_data_t *gpsdata);
 
 static void buildPair (gint index, gchar *labelText, GtkWidget *table,
                        gint left, gint top);
@@ -649,8 +648,6 @@ static void resynch (void) {
     } else {
         /* If we got here, we're good to go. */
         gtk_progress_bar_set_text (progress, "Ahhh, a gpsd connection!");
-        gps_set_raw_hook (&our_gps_data, showData);
-
         gpsLost = false;
         haveConnection = true;
         sendWatch ();
@@ -931,13 +928,8 @@ static GtkWidget *get_menubar_menu( GtkWidget  *window ) {
     return gtk_item_factory_get_widget (item_factory, "<main>");
 }
 
-/* The libgps callback function. */
-void showData (struct gps_data_t *gpsdata,
-               char *message,   /* The string(s) from GPSd from which
-                                   libgps reconstructs the data we
-                                   use. */
-               size_t len) {    /* I think this is the length of
-                                 * message. */
+/* Our display function. Nested case statements. */
+void showData (struct gps_data_t *gpsdata) {
     char tmpBuff[STRINGBUFFSIZE];   /* generic temporary holding. */
     char *fixStatus = "DGPS ";  /* Default, if we even use it. */
 
@@ -1222,6 +1214,8 @@ gint gpsPoll (gpointer data) {
             }
             gtk_progress_bar_set_fraction (progress, 0.0);
             resynch ();
+        } else {
+            showData (&our_gps_data);
         }
     }
 
