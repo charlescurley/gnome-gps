@@ -260,7 +260,7 @@ static void setDegrees( gpointer   callback_data,
                         guint      callback_action,
                         GtkWidget *menu_item );
 
-void showData (struct gps_data_t *gpsdata);
+void showData (void);
 
 static void buildPair (gint index, gchar *labelText, GtkWidget *table,
                        gint left, gint top);
@@ -313,7 +313,7 @@ GtkWidget *portEntry = NULL;
 GKeyFile *keyFile = NULL;
 
 bool haveConnection = false;
-struct gps_data_t our_gps_data;
+struct gps_data_t gps_data;
 
 /* Option handling variables. */
 extern char *optarg;
@@ -375,7 +375,7 @@ inline void sendWatch (void) {
     /* Tell libgps to keep shoveling data at us, and use JSON rather
      * than gpsd's corrected nmea. */
     (void) sleep (1);
-    (void) gps_stream(&our_gps_data, WATCH_ENABLE | WATCH_JSON, NULL);
+    (void) gps_stream(&gps_data, WATCH_ENABLE | WATCH_JSON, NULL);
 }
 
 /* We have to change the background of the window (which gets the
@@ -414,8 +414,8 @@ static gboolean delete_event( GtkWidget *widget,
 static void destroy( GtkWidget *widget,
                      gpointer   data ) {
     if (haveConnection == true) {
-        (void) gps_stream(&our_gps_data, WATCH_DISABLE, NULL);
-        gps_close (&our_gps_data);
+        (void) gps_stream(&gps_data, WATCH_DISABLE, NULL);
+        gps_close (&gps_data);
         haveConnection = false;
     }
 
@@ -629,13 +629,13 @@ static void resynch (void) {
     setColor (&NoFixColor);
 
     if (haveConnection == true) {
-        (void) gps_stream(&our_gps_data, WATCH_DISABLE, NULL);
-        gps_close (&our_gps_data);
+        (void) gps_stream(&gps_data, WATCH_DISABLE, NULL);
+        gps_close (&gps_data);
         haveConnection = false;
     }
 
     gtk_progress_bar_set_fraction (progress, 0.0);
-    ret = gps_open(hostName, hostPort, &our_gps_data);
+    ret = gps_open(hostName, hostPort, &gps_data);
     if (ret != 0) {
         if (verbose) {
             if (errno < 1) {
@@ -931,19 +931,19 @@ static GtkWidget *get_menubar_menu( GtkWidget  *window ) {
 }
 
 /* Our display function. Nested case statements. */
-void showData (struct gps_data_t *gpsdata) {
+void showData (void) {
     char tmpBuff[STRINGBUFFSIZE];   /* generic temporary holding. */
     char *fixStatus = "DGPS ";  /* Default, if we even use it. */
 
     /* Some things we ignore. */
-    if (gpsdata->set & POLICY_SET) {
-        gpsdata->set &= ~(POLICY_SET);
+    if (gps_data.set & POLICY_SET) {
+        gps_data.set &= ~(POLICY_SET);
         return;
     }
 
     /* Fill in receiver type. Detect missing gps receiver. */
-    if (gpsdata->set & (DEVICE_SET)) {
-        if (gpsdata->dev.activated < 1.0) {
+    if (gps_data.set & (DEVICE_SET)) {
+        if (gps_data.dev.activated < 1.0) {
             sendWatch ();
             gpsLost = true;
 
@@ -964,11 +964,11 @@ void showData (struct gps_data_t *gpsdata) {
 
             /* Old versions of printf would break if presented with a string
              * of 0 length. OK, I'm paranoid, deal with it. */
-            if (strlen (gpsdata->dev.driver)) {
-                (void) snprintf(tmpBuff, sizeof(tmpBuff), "%s GPS Found!", gpsdata->dev.driver);
+            if (strlen (gps_data.dev.driver)) {
+                (void) snprintf(tmpBuff, sizeof(tmpBuff), "%s GPS Found!", gps_data.dev.driver);
                 (void) snprintf (titleBuff, STRINGBUFFSIZE,
                                  "%s: %s; %s",
-                                 baseName, gpsdata->dev.driver, gpsdata->dev.subtype);
+                                 baseName, gps_data.dev.driver, gps_data.dev.subtype);
                 gtk_window_set_title (GTK_WINDOW (window), titleBuff);
             } else {
                 (void) strcpy (tmpBuff, "GPS Found!");
@@ -978,90 +978,90 @@ void showData (struct gps_data_t *gpsdata) {
             if (verbose) {
                 (void) snprintf(tmpBuff, sizeof(tmpBuff),
                                 "driver = %s: subtype = %s: activated = %f",
-                                gpsdata->dev.driver, gpsdata->dev.subtype,
-                                gpsdata->dev.activated);
+                                gps_data.dev.driver, gps_data.dev.subtype,
+                                gps_data.dev.activated);
                 (void) printf ("gps found.\n");
             }
         }
 
         if (verbose) {
             (void) printf ("set 0x%08x, (device) GPS Driver: %s\n",
-                           gpsdata->set, tmpBuff);
+                           gps_data.set, tmpBuff);
         }
 
         return;
     }
 
-    if ((gpsdata->set & DEVICELIST_SET) && verbose) {
-        if (gpsdata->devices.ndevices == 1) {
-            if (gpsdata->devices.list[0].activated < 1.0) {
+    if ((gps_data.set & DEVICELIST_SET) && verbose) {
+        if (gps_data.devices.ndevices == 1) {
+            if (gps_data.devices.list[0].activated < 1.0) {
                 (void) strcpy (tmpBuff, "driver = nil: subtype = nil: activated = 0.0");
             } else {
                 (void) snprintf(tmpBuff, sizeof(tmpBuff), "driver = %s: subtype = %s: activated = %f",
-                                gpsdata->devices.list[0].driver,
-                                gpsdata->devices.list[0].subtype,
-                                gpsdata->devices.list[0].activated);
+                                gps_data.devices.list[0].driver,
+                                gps_data.devices.list[0].subtype,
+                                gps_data.devices.list[0].activated);
             }
         } else {
             /* We have multiple devices, which I've never seen, so
              * punt. */
             (void) snprintf(tmpBuff, sizeof(tmpBuff), "%d devices",
-                            gpsdata->devices.ndevices);
+                            gps_data.devices.ndevices);
         }
         (void) printf ("set 0x%08x, (Devices) GPS Driver: %s\n",
-                       gpsdata->set, tmpBuff);
+                       gps_data.set, tmpBuff);
 
         return;
     }
 
-    if (gpsdata->set & TIME_SET) {
-        formatTime (gpsdata->fix.time);
+    if (gps_data.set & TIME_SET) {
+        formatTime (gps_data.fix.time);
     }
 
-    if (gpsdata->set & VERSION_SET && (verbose != false)) {
+    if (gps_data.set & VERSION_SET && (verbose != false)) {
         (void) printf ("set 0x%08x, GPSD version: %s Rev: %s, Protocol %d.%d\n",
-                       gpsdata->set,
-                       gpsdata->version.release,
-                       gpsdata->version.rev,
-                       gpsdata->version.proto_major,
-                       gpsdata->version.proto_minor);
+                       gps_data.set,
+                       gps_data.version.release,
+                       gps_data.version.rev,
+                       gps_data.version.proto_major,
+                       gps_data.version.proto_minor);
     }
 
-    if (gpsdata->set & SPEED_SET) {
-        formatSpeed (gpsdata->fix.speed);
+    if (gps_data.set & SPEED_SET) {
+        formatSpeed (gps_data.fix.speed);
     }
 
-    if (gpsdata->set & TRACK_SET) {
-        formatTrack (gpsdata->fix.track);
+    if (gps_data.set & TRACK_SET) {
+        formatTrack (gps_data.fix.track);
     }
 
     /* A nice and unusual use of a progress bar, if I say so
      * myself. */
-    if (gpsdata->set & SATELLITE_SET) {
+    if (gps_data.set & SATELLITE_SET) {
         gchar banner[STRINGBUFFSIZE];
 
         /* Guard against division of or by 0. */
-        if (gpsdata->satellites_visible > 0 && gpsdata->satellites_used > 0) {
+        if (gps_data.satellites_visible > 0 && gps_data.satellites_used > 0) {
             gtk_progress_bar_set_fraction (progress,
-                                           (gdouble) gpsdata->satellites_used/
-                                           (gdouble) gpsdata->satellites_visible);
+                                           (gdouble) gps_data.satellites_used/
+                                           (gdouble) gps_data.satellites_visible);
 
             (void) snprintf (banner, STRINGBUFFSIZE,
                              "%2d satellites visible, %2d used in the fix.",
-                             gpsdata->satellites_visible,
-                             gpsdata->satellites_used);
+                             gps_data.satellites_visible,
+                             gps_data.satellites_used);
         } else {
             gtk_progress_bar_set_fraction (progress, 0.0);
-            if (gpsdata->satellites_visible > 0) {
+            if (gps_data.satellites_visible > 0) {
                 (void) snprintf (banner, STRINGBUFFSIZE,
                                  "%2d satellites visible, no fix.",
-                                 gpsdata->satellites_visible);
+                                 gps_data.satellites_visible);
                 /* Something is fishy. If we've had satellites
                  * visible, and then lose them,
-                 * gpsdata->satellites_visible still reports 1, but
+                 * gps_data.satellites_visible still reports 1, but
                  * not 0. I think. This is to re-set it just in
                  * case. */
-                /* gpsdata->satellites_visible = 0; */
+                /* gps_data.satellites_visible = 0; */
             } else {
                 (void) snprintf (banner, STRINGBUFFSIZE,
                                  "No satellites visible, no fix.");
@@ -1070,13 +1070,13 @@ void showData (struct gps_data_t *gpsdata) {
         gtk_progress_bar_set_text (progress, banner);
 
         if (verbose) {
-            (void) printf ("set 0x%08x, %s\n", gpsdata->set,
+            (void) printf ("set 0x%08x, %s\n", gps_data.set,
                            banner);
         }
     }
 
-    if (gpsdata->set & STATUS_SET) {
-        switch (gpsdata->status) {
+    if (gps_data.set & STATUS_SET) {
+        switch (gps_data.status) {
         case STATUS_NO_FIX:
             (void) strcpy (fixBuff, "No fix");
             setColor (&NoFixColor);
@@ -1088,8 +1088,8 @@ void showData (struct gps_data_t *gpsdata) {
 
         case STATUS_DGPS_FIX:
 
-            if (gpsdata->set & MODE_SET) {
-                switch (gpsdata->fix.mode) {
+            if (gps_data.set & MODE_SET) {
+                switch (gps_data.fix.mode) {
                 case MODE_NOT_SEEN:
                     (void) strcpy (fixBuff, "Fix not yet seen");
                     setColor (&NoFixColor);
@@ -1101,37 +1101,37 @@ void showData (struct gps_data_t *gpsdata) {
                     break;
 
                 case MODE_2D:
-                    if ((gpsdata->set & LATLON_SET)) {
-                        formatLat (gpsdata->fix.latitude);
-                        formatLong (gpsdata->fix.longitude);
+                    if ((gps_data.set & LATLON_SET)) {
+                        formatLat (gps_data.fix.latitude);
+                        formatLong (gps_data.fix.longitude);
                         setColor (&TwoDFixColor);
 
                         if (verbose) {
                             (void) snprintf (fixBuff, STRINGBUFFSIZE,
                                              "2D %sFix, la %f, lo %f",
                                              fixStatus,
-                                             gpsdata->fix.latitude,
-                                             gpsdata->fix.longitude);
+                                             gps_data.fix.latitude,
+                                             gps_data.fix.longitude);
                         }
                     }
                     break;
 
                 case MODE_3D:
-                    if ((gpsdata->set & (LATLON_SET|ALTITUDE_SET))) {
-                        formatLat (gpsdata->fix.latitude);
-                        formatLong (gpsdata->fix.longitude);
+                    if ((gps_data.set & (LATLON_SET|ALTITUDE_SET))) {
+                        formatLat (gps_data.fix.latitude);
+                        formatLong (gps_data.fix.longitude);
 
                         /* Only if we have a fix are the details of it useful. Altitude is
                            only meaningful on a 3D fix. */
-                        formatAltitude (gpsdata->fix.altitude);
+                        formatAltitude (gps_data.fix.altitude);
                         setColor (&ThreeDFixColor);
                         if (verbose) {
                             (void) snprintf (fixBuff, STRINGBUFFSIZE,
                                              "3D %sFix, la %f, lo %f, %f",
                                              fixStatus,
-                                             gpsdata->fix.latitude,
-                                             gpsdata->fix.longitude,
-                                             gpsdata->fix.altitude);
+                                             gps_data.fix.latitude,
+                                             gps_data.fix.longitude,
+                                             gps_data.fix.altitude);
                         }
 
                     }
@@ -1139,7 +1139,7 @@ void showData (struct gps_data_t *gpsdata) {
 
                 default:
                     (void) fprintf (stderr, "%s: Catastrophic error: Invalid mode %d.\n",
-                                    baseName, gpsdata->fix.mode);
+                                    baseName, gps_data.fix.mode);
                     setColor (&NoFixColor);
                     return;
                 } /* fix.mode */
@@ -1148,15 +1148,15 @@ void showData (struct gps_data_t *gpsdata) {
 
         default:
             (void) fprintf (stderr, "Catastrophic error: Invalid status %d.\n",
-                            gpsdata->status);
+                            gps_data.status);
             setColor (&NoFixColor);
             return;
         }
 
         if (verbose) {
             (void) printf ("set 0x%08x, mode %d, %s, %s.\n",
-                           gpsdata->set,
-                           gpsdata->fix.mode,
+                           gps_data.set,
+                           gps_data.fix.mode,
                            timeString,
                            fixBuff);
         }
@@ -1206,9 +1206,9 @@ gint gpsPoll (gpointer data) {
         return (true);
     }
 
-    if (gps_waiting (&our_gps_data)) {
+    if (gps_waiting (&gps_data)) {
         errno = 0;
-        if (gps_read (&our_gps_data) == -1) {
+        if (gps_read (&gps_data) == -1) {
             if (errno == 0) {
                 gtk_progress_bar_set_text (progress, "Lost contact with gpsd.");
             } else {
@@ -1217,7 +1217,7 @@ gint gpsPoll (gpointer data) {
             gtk_progress_bar_set_fraction (progress, 0.0);
             resynch ();
         } else {
-            showData (&our_gps_data);
+            showData ();
         }
     }
 
