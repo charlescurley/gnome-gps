@@ -986,7 +986,7 @@ void showData (void) {
 
         if (verbose) {
             (void) printf ("set 0x%08x, (device) GPS Driver: %s\n",
-                           gps_data.set, tmpBuff);
+                           (unsigned int) gps_data.set, tmpBuff);
         }
 
         return;
@@ -1009,7 +1009,7 @@ void showData (void) {
                             gps_data.devices.ndevices);
         }
         (void) printf ("set 0x%08x, (Devices) GPS Driver: %s\n",
-                       gps_data.set, tmpBuff);
+                       (unsigned int) gps_data.set, tmpBuff);
 
         return;
     }
@@ -1020,7 +1020,7 @@ void showData (void) {
 
     if (gps_data.set & VERSION_SET && (verbose != false)) {
         (void) printf ("set 0x%08x, GPSD version: %s Rev: %s, Protocol %d.%d\n",
-                       gps_data.set,
+                       (unsigned int) gps_data.set,
                        gps_data.version.release,
                        gps_data.version.rev,
                        gps_data.version.proto_major,
@@ -1070,7 +1070,7 @@ void showData (void) {
         gtk_progress_bar_set_text (progress, banner);
 
         if (verbose) {
-            (void) printf ("set 0x%08x, %s\n", gps_data.set,
+            (void) printf ("set 0x%08x, %s\n", (unsigned int) gps_data.set,
                            banner);
         }
     }
@@ -1155,7 +1155,7 @@ void showData (void) {
 
         if (verbose) {
             (void) printf ("set 0x%08x, mode %d, %s, %s.\n",
-                           gps_data.set,
+                           (unsigned int) gps_data.set,
                            gps_data.fix.mode,
                            timeString,
                            fixBuff);
