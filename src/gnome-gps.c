@@ -1,6 +1,6 @@
 /* We'll call it version 1 when gpsd goes to version 3.0. */
 
-char *versionString = "0.9";
+char *versionString = "0.91";
 
 /* A GTK program for showing the latest gps data using libgps. */
 
@@ -619,9 +619,9 @@ static void aboutDialog( gpointer   callback_data,
                            "authors", authors,
                            "comments", "A simple GTK+ GPS monitor.\n\nRed: No fix.\n"
                            "Yellow: Two dimensional fix.\nGreen: Three dimensional fix.\n"
-                           "Libgps API version 5.0 or greater.\n"
+                           "Libgps API version 5.0.\n"
                            "\"Save\" to save settings such as font and units.",
-                           "copyright", "Copyright © 2009-2010 Charles Curley.",
+                           "copyright", "Copyright © 2009-2011 Charles Curley.",
                            "documenters", documentors,
                            "license", "This program is released under the same terms as gpsd "
                            "itself, i.e under the BSD License. See the file COPYING in the "
@@ -1209,7 +1209,7 @@ int main ( int   argc,
         baseName = g_path_get_basename (g_strdup (argv[0]));
     }
 
-    (void) printf ("\n%s: Copyright © 2010 Charles Curley\n", baseName);
+    (void) printf ("\n%s: Copyright © 2009-2011 Charles Curley\n", baseName);
 
     (void) printf ("This program is released under the same terms as gpsd itself, i.e.\n");
     (void) printf ("under the BSD License. See the file Copying in the gpsd distribution.\n");
