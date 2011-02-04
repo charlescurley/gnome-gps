@@ -415,7 +415,7 @@ static void destroy( GtkWidget *widget,
                      gpointer   data ) {
     if (haveConnection == true) {
         (void) gps_stream(&gps_data, WATCH_DISABLE, NULL);
-        gps_close (&gps_data);
+        (void) gps_close (&gps_data);
         haveConnection = false;
     }
 
@@ -630,7 +630,7 @@ static void resynch (void) {
 
     if (haveConnection == true) {
         (void) gps_stream(&gps_data, WATCH_DISABLE, NULL);
-        gps_close (&gps_data);
+        (void) gps_close (&gps_data);
         haveConnection = false;
     }
 
