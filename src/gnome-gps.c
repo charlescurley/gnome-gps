@@ -42,7 +42,7 @@ char *versionString = "0.91";
 /* Our icon in raw format. A screen shot of the program, of course. I
  * then generated the C source with: */
 
-/* gdk-pixbuf-csource gpsd-logo-small.png  > icon.image.c */
+/* gdk-pixbuf-csource gnome-gps.logo.png  > icon.image.c */
 
 /* Then removed the keyword "static" and added a #include for
  * <gtk/gtk.h>. And added the file to our compile line above. */
@@ -902,12 +902,6 @@ void showData (void) {
                 (void) snprintf (banner, STRINGBUFFSIZE,
                                  "%2d satellites visible, no fix.",
                                  gps_data.satellites_visible);
-                /* Something is fishy. If we've had satellites
-                 * visible, and then lose them,
-                 * gps_data.satellites_visible still reports 1, but
-                 * not 0. I think. This is to re-set it just in
-                 * case. */
-                /* gps_data.satellites_visible = 0; */
             } else {
                 (void) snprintf (banner, STRINGBUFFSIZE,
                                  "No satellites visible, no fix.");
@@ -919,6 +913,12 @@ void showData (void) {
             (void) printf ("set 0x%08x, %s\n", (unsigned int) gps_data.set,
                            banner);
         }
+        /* Something is fishy. If we've had satellites
+         * visible, and then lose them,
+         * gps_data.satellites_visible still reports 1, but
+         * not 0. I think. This is to re-set it just in
+         * case. */
+        /* gps_data.satellites_visible = 0; */
     }
 
     if (gps_data.set & STATUS_SET) {
@@ -1338,7 +1338,7 @@ int main ( int   argc,
 
         case 'V':       /* N.b.: falls through to the default case! */
             (void) fprintf (stderr,
-                            "%s,\nCompiled for gpsd API version %d.%d.\n",
+                            "%s, compiled for gpsd API version %d.%d.\n",
                             versionString, GPSD_API_MAJOR_VERSION,
                             GPSD_API_MINOR_VERSION);
 
