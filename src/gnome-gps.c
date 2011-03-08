@@ -1052,7 +1052,7 @@ gint gpsPoll (gpointer data) {
         return (true);
     }
 
-    if (gps_waiting (&gps_data)) {
+    if (gps_waiting (&gps_data) == true) {
         errno = 0;
         if (gps_read (&gps_data) == -1) {
             if (errno == 0) {
