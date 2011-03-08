@@ -8,10 +8,6 @@ char *versionString = "0.91";
 
    aptitude install gcc libgtk2.0-dev
 
-   Compile:
-
-   gcc -Wall gnome-gps.c icon.image.c -o gnome-gps $(pkg-config --cflags --libs gtk+-2.0 libgps)
-
    add: -ggdb for debug (gdb) output.
 
 */
