@@ -1,2 +1,3 @@
 src/gnome-gps
 *.o
+*.do
