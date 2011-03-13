@@ -391,14 +391,14 @@ void formatAngle (double theAngle, gchar *buffer) {
 void formatLat (double latitude) {
     double latAbs = fabs (latitude);
     formatAngle (latAbs, latString);
-    (void) strcat (latString, latitude < 0 ? "S" : latitude > 0 ? "N" : "" );
+    (void) strncat (latString, latitude < 0 ? "S" : latitude > 0 ? "N" : "" , 1);
     gtk_entry_set_text(entries[LAT], latString );
 }
 
 void formatLong (double longitude) {
     double longAbs = fabs (longitude);
     formatAngle (longAbs, longString);
-    (void) strcat (longString, longitude < 0 ? "W" : longitude > 0 ? "E" : "" );
+    (void) strncat (longString, longitude < 0 ? "W" : longitude > 0 ? "E" : "" , 1);
     gtk_entry_set_text(entries[LONG], longString );
 }
 
@@ -1048,7 +1048,7 @@ gint gpsPoll (gpointer data) {
         return (true);
     }
 
-    if (gps_waiting (&gps_data) == true) {
+    if (gps_waiting (&gps_data, 300000) == true) {
         errno = 0;
         if (gps_read (&gps_data) == -1) {
             if (errno == 0) {
@@ -1232,8 +1232,9 @@ int main ( int   argc,
             haveHome = true;
 
             (void) strncpy (keyFileName, home, STRINGBUFFSIZE);
-            (void) strcat (keyFileName, "/.");
-            (void) strcat (keyFileName, baseName);
+            (void) strncat (keyFileName, "/.", STRINGBUFFSIZE - strlen (keyFileName));
+            (void) strncat (keyFileName, baseName,
+                            STRINGBUFFSIZE - strlen (keyFileName));
 
             keyFile = g_key_file_new ();
             flags = G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS;
