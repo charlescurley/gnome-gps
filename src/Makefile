@@ -19,7 +19,7 @@ PRODUCTOBJS = gnome-gps.o icon.image.o
 	gcc -o $@ $(DEBUGFLAGS) -c $< $(INPUTS)
 
 production: $(PRODUCTOBJS)
-	gcc -Wall gnome-gps.o icon.image.o -o gnome-gps $(INPUTS)
+	gcc -Wall -O2 gnome-gps.o icon.image.o -o gnome-gps $(INPUTS)
 	strip gnome-gps
 
 debug: $(DEBUGOBJS)
