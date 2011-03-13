@@ -14,7 +14,7 @@ PRODUCTOBJS = gnome-gps.o icon.image.o
 
 # Our very own compile rules
 .c.o:
-	gcc -o $@ $(PRODUCTFLAGS) -c $< $(INPUTS)
+	gcc -O2 -o $@ $(PRODUCTFLAGS) -c $< $(INPUTS)
 .c.do:
 	gcc -o $@ $(DEBUGFLAGS) -c $< $(INPUTS)
 
