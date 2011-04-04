@@ -479,8 +479,9 @@ static void resynch (void) {
     if (ret != 0) {
         if (verbose) {
             if (errno < 1) {
-                (void) fprintf (stderr, "%s: gpsd error: %s\n",
-                                baseName, gps_errstr(errno));
+                (void) fprintf (stderr, "%s: gpsd error: %s %s:%s.\n",
+                                baseName, gps_errstr(errno),
+                                hostName, hostPort);
             } else {
                 perror (baseName);
             }
