@@ -39,7 +39,7 @@ char *versionString = "0.91";
 /* gdk-pixbuf-csource gnome-gps.logo.png  > icon.image.c */
 
 /* Then removed the keyword "static" and added a #include for
- * <gtk/gtk.h>. And added the file to our compile line above. */
+ * <gtk/gtk.h>. */
 
 extern const guint8 my_pixbuf[];
 
