@@ -8,8 +8,6 @@ char *versionString = "0.91";
 
    aptitude install gcc libgtk2.0-dev
 
-   add: -ggdb for debug (gdb) output.
-
 */
 
 #include <gps.h>                /* Not the same as gpsd.h */
