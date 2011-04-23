@@ -1047,7 +1047,7 @@ gint gpsPoll (gpointer data) {
         return (true);
     }
 
-    if (gps_waiting (&gpsdata, 300000) == true) {
+    if (gps_waiting (&gpsdata, 200000) == true) {
         errno = 0;
         if (gps_read (&gpsdata) == -1) {
             if (errno == 0) {
