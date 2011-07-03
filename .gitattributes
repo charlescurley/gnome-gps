@@ -1,2 +1,3 @@
 pix export-ignore
 .gitattributes export-ignore
+src/gpsd-logo-small.png export-ignore
