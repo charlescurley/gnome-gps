@@ -1,1 +1,2 @@
-/pix export-ignore
+pix export-ignore
+.gitattributes export-ignore
