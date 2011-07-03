@@ -1,8 +1,11 @@
-/* We'll call it version 1 when gpsd goes to version 3.0. */
-
-char *versionString = "0.91";
-
 /* A GTK program for showing the latest gps data using libgps. */
+
+/* License: This program is released under the same terms as gpsd
+ * itself, i.e under the BSD License. See the file COPYING in the
+ * distribution. This program comes with ABSOLUTELY NO WARRANTY. */
+
+/* We'll call it version 1 when gpsd goes to version 3.0. */
+char *versionString = "0.91";
 
 /* Prerequisites. Any fairly recent version should do.
 
