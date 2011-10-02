@@ -12,6 +12,9 @@ DEBUGOBJS = gnome-gps.do icon.image.do
 PRODUCTFLAGS = -Wall
 PRODUCTOBJS = gnome-gps.o icon.image.o
 
+SHARE=/usr/share/
+EXECDIR=/usr/local/bin/
+
 # Our very own compile rules
 .c.o:
 	gcc -O2 -o $@ $(PRODUCTFLAGS) -c $< $(INPUTS)
@@ -40,3 +43,14 @@ archive:
 	git archive --format=tar HEAD | bzip2 > ../../gnome-gps.`date +%Y.%m.%d`.tar.bz2
 	cd ../../ && md5sum gnome-gps.`date +%Y.%m.%d`.tar.bz2  > gnome-gps.`date +%Y.%m.%d`.md5sum
 	cd ../../ && sha1sum gnome-gps.`date +%Y.%m.%d`.tar.bz2 > gnome-gps.`date +%Y.%m.%d`.sha1sum
+
+install:
+	mkdir -p $(SHARE)gnome-gps
+	cp gnome-gps.logo.png $(SHARE)gnome-gps
+	cp gnome-gps $(EXECDIR)
+	cp gnome-gps.desktop $(SHARE)applications
+
+uninstall:
+	rm -r $(SHARE)gnome-gps
+	rm $(EXECDIR)gnome-gps
+	rm $(SHARE)applications/gnome-gps.desktop
