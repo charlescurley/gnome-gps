@@ -23,3 +23,8 @@ There isn't much to it, so thses notes should suffice:
 * Menu functions have accelerator (shortcut) keys.
 
 * For automotive use, try a fairly large font, e.g. 17 to 25 points.
+
+
+To compile, you need:
+
+apt-get gcc make libgtk2.0-dev
