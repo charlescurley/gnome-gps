@@ -5,7 +5,7 @@
  * distribution. This program comes with ABSOLUTELY NO WARRANTY. */
 
 /* We'll call it version 1 when gpsd goes to version 3.0. */
-char *versionString = "0.91";
+char *versionString = "1.0";
 
 /* Prerequisites. Any fairly recent version should do.
 
