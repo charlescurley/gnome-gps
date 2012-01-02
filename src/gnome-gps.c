@@ -390,14 +390,14 @@ void formatAngle (double theAngle, gchar *buffer) {
 void formatLat (double latitude) {
     double latAbs = fabs (latitude);
     formatAngle (latAbs, latString);
-    (void) strncat (latString, latitude < 0 ? "S" : latitude > 0 ? "N" : "" , 1);
+    (void) strncat (latString, latitude < 0 ? "S" : latitude > 0 ? "N" : "" , 2);
     gtk_entry_set_text(entries[LAT], latString );
 }
 
 void formatLong (double longitude) {
     double longAbs = fabs (longitude);
     formatAngle (longAbs, longString);
-    (void) strncat (longString, longitude < 0 ? "W" : longitude > 0 ? "E" : "" , 1);
+    (void) strncat (longString, longitude < 0 ? "W" : longitude > 0 ? "E" : "" , 2);
     gtk_entry_set_text(entries[LONG], longString );
 }
 
@@ -538,12 +538,12 @@ static void hostOkCallback (GtkWidget *widget,
     sandbox = gtk_entry_get_text (GTK_ENTRY (hostEntry));
 
     if ((sandbox != NULL) && (strlen (sandbox) < STRINGBUFFSIZE) && (strlen (sandbox))) {
-        (void) strncpy (hostName, sandbox, STRINGBUFFSIZE);
+        (void) strncpy (hostName, sandbox, STRINGBUFFSIZE-1);
     }
 
     sandbox = gtk_entry_get_text (GTK_ENTRY (portEntry));
     if ((sandbox != NULL) && (strlen (sandbox) < STRINGBUFFSIZE) && (strlen (sandbox))) {
-        (void) strncpy (hostPort, sandbox, STRINGBUFFSIZE);
+        (void) strncpy (hostPort, sandbox, STRINGBUFFSIZE-1);
     }
 
     gtk_widget_destroy (hostDialogBox);
@@ -1295,10 +1295,10 @@ int main ( int   argc,
             }
             haveHome = true;
 
-            (void) strncpy (keyFileName, home, STRINGBUFFSIZE);
-            (void) strncat (keyFileName, "/.", STRINGBUFFSIZE - strlen (keyFileName));
+            (void) strncpy (keyFileName, home, STRINGBUFFSIZE-1);
+            (void) strncat (keyFileName, "/.", (STRINGBUFFSIZE-1) - strlen (keyFileName));
             (void) strncat (keyFileName, baseName,
-                            STRINGBUFFSIZE - strlen (keyFileName));
+                            (STRINGBUFFSIZE-1) - strlen (keyFileName));
 
             keyFile = g_key_file_new ();
             flags = G_KEY_FILE_KEEP_COMMENTS | G_KEY_FILE_KEEP_TRANSLATIONS;
@@ -1314,13 +1314,13 @@ int main ( int   argc,
             conf->host = g_key_file_get_string ( keyFile, baseName,
                                                  "host", NULL);
             if (conf->host != NULL && strlen (conf->host) > 0) {
-                (void) strncpy (hostName, conf->host, STRINGBUFFSIZE);
+                (void) strncpy (hostName, conf->host, STRINGBUFFSIZE-1);
             }
 
             conf->port = g_key_file_get_string ( keyFile, baseName,
                                                  "port", NULL);
             if (conf->port != NULL && strlen (conf->port) > 0) {
-                (void) strncpy (hostPort, conf->port, STRINGBUFFSIZE);
+                (void) strncpy (hostPort, conf->port, STRINGBUFFSIZE-1);
             }
 
             conf->angle = g_key_file_get_string ( keyFile, baseName,
@@ -1398,7 +1398,7 @@ int main ( int   argc,
             break;
 
         case 'p':
-            (void) strncpy (hostPort, optarg, STRINGBUFFSIZE);
+            (void) strncpy (hostPort, optarg, STRINGBUFFSIZE-1);
             break;
 
         case 'v':
@@ -1421,7 +1421,7 @@ int main ( int   argc,
 
     if (optind != argc) {
         /* we have a host name.... */
-        (void) strncpy (hostName, argv[optind], STRINGBUFFSIZE);
+        (void) strncpy (hostName, argv[optind], STRINGBUFFSIZE-1);
     }
 
     {
