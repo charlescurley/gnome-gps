@@ -81,6 +81,9 @@ static void aboutDialog( gpointer   callback_data,
 static void setUnits( gpointer   callback_data,
                       guint      callback_action,
                       GtkWidget *menu_item );
+static void setGmt( gpointer   callback_data,
+                    guint      callback_action,
+                    GtkWidget *menu_item );
 static void setDegrees( gpointer   callback_data,
                         guint      callback_action,
                         GtkWidget *menu_item );
@@ -96,12 +99,6 @@ static void setFont( gpointer   callback_data,
                      guint      callback_action,
                      GtkWidget *menu_item );
 static GtkWidget *get_menubar_menu( GtkWidget  *window );
-static void setUnits( gpointer   callback_data,
-                      guint      callback_action,
-                      GtkWidget *menu_item );
-static void setDegrees( gpointer   callback_data,
-                        guint      callback_action,
-                        GtkWidget *menu_item );
 
 void showData (void);
 
@@ -116,7 +113,7 @@ int main ( int argc, char *argv[] );
 
 /* Settings that go into the configuration file. */
 typedef struct {
-    gchar *port, *host, *angle, *units, *font;
+    gchar *port, *host, *angle, *units, *font, *gmt;
 } settings;
 
 /* Table layout of the main window. */
@@ -171,6 +168,7 @@ char units = US;
 enum angleSpec {DEGREES = 'd', MINUTES = 'm', SECONDS = 's' } angleSpec;
 char angle = DEGREES;           /* How to display the angles in lat
                                  * and long. */
+gboolean gmt = true;            /* Display time in GMT or local? */
 
 #define STRINGBUFFSIZE 1024
 gchar fixBuff[STRINGBUFFSIZE] = "No fix seen yet";
@@ -403,10 +401,42 @@ void formatLong (double longitude) {
     gtk_entry_set_text(entries[LONG], longString );
 }
 
+char *gnome_gps_unix_to_iso8601(timestamp_t fixtime,
+                                     char isotime[], size_t len)
+/* Unix time to ISO8601. Filched from gpsd's gpsutils.c. example:
+ * 2007-12-11T23:38:51.033 */
+{
+    struct tm when;
+    double integral, fractional;
+    time_t intfixtime;
+    char timestr[30];
+    char fractstr[10];
+
+    fractional = modf(fixtime, &integral);
+    intfixtime = (time_t) integral;
+    (void)localtime_r(&intfixtime, &when);
+
+    (void)strftime(timestr, sizeof(timestr), "%Y-%m-%dT%H:%M:%S", &when);
+    /*
+     * Do not mess casually with the number of decimal digits in the
+     * format!  Most GPSes report over serial links at 0.01s or 0.001s
+     * precision.
+     */
+    (void)snprintf(fractstr, sizeof(fractstr), "%.3f", fractional);
+    /* add fractional part, ignore leading 0; "0.2" -> ".2" */
+    /*@i2@*/(void)snprintf(isotime, len, "%s%s",timestr, strchr(fractstr,'.'));
+    return isotime;
+}
+
 void formatTime (double time) {
     if (isnan(time)==0) {
-        (void) unix_to_iso8601(time, timeString,
-                               (int) sizeof(timeString));
+        if (gmt == true) {
+            (void) unix_to_iso8601(time, timeString,
+                                   (int) sizeof(timeString));
+        } else {
+            (void) gnome_gps_unix_to_iso8601(time, timeString,
+                                             (int) sizeof(timeString));
+        }
     } else {
         (void) strcpy(timeString,"n/a");
     }
@@ -642,6 +672,9 @@ static GtkItemFactoryEntry menu_items[] = {
     { "/Units/_Metric",         "<ctrl>m",    setUnits,  METRIC, "<RadioItem>"          },
     { "/Units/_US",             "<ctrl>i",    setUnits,      US, "/Units/Metric"        },
     { "/Units/_Knots",          "<ctrl>k",    setUnits,   KNOTS, "/Units/Metric"        },
+    { "/Units/Sep",                  NULL,        NULL,       0, "<Separator>"          },
+    { "/Units/_Gmt",            "<ctrl>g",      setGmt,    true, "<RadioItem>"          },
+    { "/Units/_Local",          "<ctrl>l",      setGmt,   false, "/Units/Gmt"           },
     { "/_Degrees",                   NULL,        NULL,       0, "<Branch>" },
     { "/Degrees/_ddd.dddddd",   "<ctrl>d",  setDegrees, DEGREES, "<RadioItem>"          },
     { "/Degrees/ddd _mm.mmmm",  "<ctrl>n",  setDegrees, MINUTES, "/Degrees/ddd.dddddd"  },
@@ -660,14 +693,19 @@ static void setUnits( gpointer   callback_data,
     units = callback_action;
 }
 
-/* Now some functions for the menu */
+static void setGmt( gpointer   callback_data,
+                    guint      callback_action,
+                    GtkWidget *menu_item ) {
+    gmt = callback_action;
+}
+
+
 static void setDegrees( gpointer   callback_data,
                         guint      callback_action,
                         GtkWidget *menu_item ) {
     angle = callback_action;
 }
 
-/* Now some functions for the menu */
 static void saveState( gpointer   callback_data,
                        guint      callback_action,
                        GtkWidget *menu_item ) {
@@ -1092,6 +1130,9 @@ void saveKeyFile (GKeyFile *keyFile) {
     sandbox [0] = units;
     g_key_file_set_value (keyFile, baseName, "units", sandbox);
 
+    sandbox [0] = gmt ? 't' : 'f';
+    g_key_file_set_value (keyFile, baseName, "gmt", sandbox);
+
     /* Now we jump through some hoops to get the existing font so we
      * save it. We use one of the text entry widgets because their
      * fonts are set by this dialog. */
@@ -1179,6 +1220,27 @@ void setActiveUnits (void) {
     case METRIC:
         gtk_check_menu_item_set_active(
             GTK_CHECK_MENU_ITEM (gtk_item_factory_get_item (item_factory, "/Units/Metric")),
+            TRUE);
+        break;
+    }
+}
+
+void setActiveGmt (void) {
+    switch (gmt) {
+
+        /* Use the default to silently handle errors and fall through
+         * to the substitute case. */
+    default:
+        gmt = true;
+    case true:
+        gtk_check_menu_item_set_active(
+            GTK_CHECK_MENU_ITEM (gtk_item_factory_get_item (item_factory, "/Units/Gmt")),
+            TRUE);
+        break;
+
+    case false:
+        gtk_check_menu_item_set_active(
+            GTK_CHECK_MENU_ITEM (gtk_item_factory_get_item (item_factory, "/Units/Local")),
             TRUE);
         break;
     }
@@ -1278,6 +1340,14 @@ int main ( int   argc,
             conf->font = NULL;
             conf->font = g_key_file_get_string ( keyFile, baseName,
                                                  "font", NULL);
+
+            conf->gmt = NULL;
+            conf->gmt = g_key_file_get_string ( keyFile, baseName,
+                                                "gmt", NULL);
+            if (conf->gmt != NULL && strlen (conf->units) > 0) {
+                gmt = (conf->gmt[0] == 't') ? true : false;
+            }
+
         }
     }
 
@@ -1451,6 +1521,7 @@ int main ( int   argc,
 
     setActiveAngle ();
     setActiveUnits ();
+    setActiveGmt ();
 
     /* (void) printf ("Host is %s, port is %s\n", host, port); */
 
