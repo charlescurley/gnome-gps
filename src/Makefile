@@ -7,34 +7,33 @@
 
 # Specify libraries, header files, etc.
 INPUTS = `pkg-config --cflags --libs gtk+-2.0 libgps`
-DEBUGFLAGS = -ggdb -Wall
+DEBUGFLAGS = -ggdb -Wall -c
 DEBUGOBJS = gnome-gps.do icon.image.do
-PRODUCTFLAGS = -Wall
+PRODUCTFLAGS = -Wall -c
 PRODUCTOBJS = gnome-gps.o icon.image.o
 
 SHARE=/usr/share/
 EXECDIR=/usr/local/bin/
 
-# Our very own compile rules
-.c.o:
-	gcc -O2 -o $@ $(PRODUCTFLAGS) -c $< $(INPUTS)
-.c.do:
-	gcc -o $@ $(DEBUGFLAGS) -c $< $(INPUTS)
-
-production: $(PRODUCTOBJS)
+production: $(PRODUCTOBJS) gnome-gps.h icon.image.h
 	gcc -Wall -O2 gnome-gps.o icon.image.o -o gnome-gps $(INPUTS)
 	strip gnome-gps
 
-debug: $(DEBUGOBJS)
+debug: $(DEBUGOBJS) gnome-gps.h icon.image.h
 	gcc -Wall gnome-gps.do icon.image.do -o gnome-gps $(INPUTS)
 
-gnome-gps.o:
 
-icon.image.o:
+gnome-gps.o: gnome-gps.c gnome-gps.h icon.image.h
+	gcc -O2 -o gnome-gps.o $(PRODUCTFLAGS) gnome-gps.c $(INPUTS)
 
-gnome-gps.do:
+icon.image.o: icon.image.c
+	gcc -O2 -o icon.image.o $(PRODUCTFLAGS) icon.image.c $(INPUTS)
 
-icon.image.do:
+gnome-gps.do: gnome-gps.c gnome-gps.h icon.image.h
+	gcc -O2 -o gnome-gps.do $(DEBUGFLAGS) gnome-gps.c $(INPUTS)
+
+icon.image.do: icon.image.c
+	gcc -O2 -o icon.image.do $(DEBUGFLAGS) icon.image.c $(INPUTS)
 
 clean:
 	rm gnome-gps *.o *.do
