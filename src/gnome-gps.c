@@ -563,7 +563,7 @@ static void aboutDialog( gpointer   callback_data,
                            "Yellow: Two dimensional fix.\nGreen: Three dimensional fix.\n"
                            "Libgps API version 5.0.\n"
                            "\"Save\" to save settings such as font and units.",
-                           "copyright", "Copyright © 2009-2011 Charles Curley.",
+                           "copyright", "Copyright © 2009-2012 Charles Curley.",
                            "documenters", documentors,
                            "license", "This program is released under the same terms as gpsd "
                            "itself, i.e under the BSD License. See the file COPYING in the "
@@ -1183,7 +1183,7 @@ int main ( int   argc,
         baseName = g_path_get_basename (g_strdup (argv[0]));
     }
 
-    (void) printf ("\n%s: Copyright © 2009-2011 Charles Curley\n", baseName);
+    (void) printf ("\n%s: Copyright © 2009-2012 Charles Curley\n", baseName);
 
     (void) printf ("This program is released under the same terms as gpsd itself, i.e.\n");
     (void) printf ("under the BSD License. See the file Copying in the gpsd distribution.\n");
