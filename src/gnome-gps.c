@@ -1439,6 +1439,9 @@ int main ( int   argc,
 
     /* (void) printf ("Host is %s, port is %s\n", host, port); */
 
+    /* just in case... */
+    gpsdata.set = 0;
+
     resynch ();
 
     /* Now set up our idle function, in milliseconds. */
