@@ -27,4 +27,8 @@ There isn't much to it, so thses notes should suffice:
 
 To compile, you need:
 
-apt-get gcc make libgtk2.0-dev
+apt-get install gcc make libgtk2.0-dev
+
+except on debian squeeze, where you may need:
+
+apt-get -t squeeze-backports install gcc make libgtk2.0-dev
