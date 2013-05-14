@@ -401,15 +401,6 @@ void formatSpeed (double speed) {
     gtk_entry_set_text(entries[SPEED], speedString );
 }
 
-/* This exists so we can call resynch () from the menu. We don't
- * actually use the parameters at all. We call resynch () elsewhere in
- * the program. */
-static void resynchWrapper ( gpointer   callback_data,
-                             guint      callback_action,
-                             GtkWidget *menu_item ) {
-    resynch ();
-}
-
 static void resynch (void) {
     int ret = 0;
 
@@ -444,6 +435,15 @@ static void resynch (void) {
     }
 }
 
+/* This exists so we can call resynch () from the menu. We don't
+ * actually use the parameters at all. We call resynch () elsewhere in
+ * the program. */
+static void resynchWrapper ( gpointer   callback_data,
+                             guint      callback_action,
+                             GtkWidget *menu_item ) {
+    resynch ();
+}
+
 static void hostOkCallback (GtkWidget *widget,
                             gpointer   data) {
     const gchar *sandbox = NULL; /* look but don't touch */
@@ -461,6 +461,9 @@ static void hostOkCallback (GtkWidget *widget,
     }
 
     gtk_widget_destroy (hostDialogBox);
+
+    /* go ahead and implement the change, if any. */
+    resynch ();
 }
 
 static void hostCancelCallback (GtkWidget *widget,
@@ -563,7 +566,7 @@ static void aboutDialog( gpointer   callback_data,
                            "Yellow: Two dimensional fix.\nGreen: Three dimensional fix.\n"
                            "Libgps API version 5.0.\n"
                            "\"Save\" to save settings such as font and units.",
-                           "copyright", "Copyright © 2009-2012 Charles Curley.",
+                           "copyright", "Copyright © 2009-2013 Charles Curley.",
                            "documenters", documentors,
                            "license", "This program is released under the same terms as gpsd "
                            "itself, i.e under the BSD License. See the file COPYING in the "
@@ -1183,7 +1186,7 @@ int main ( int   argc,
         baseName = g_path_get_basename (g_strdup (argv[0]));
     }
 
-    (void) printf ("\n%s: Copyright © 2009-2012 Charles Curley\n", baseName);
+    (void) printf ("\n%s: Copyright © 2009-2013 Charles Curley\n", baseName);
 
     (void) printf ("This program is released under the same terms as gpsd itself, i.e.\n");
     (void) printf ("under the BSD License. See the file Copying in the gpsd distribution.\n");

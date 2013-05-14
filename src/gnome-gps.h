@@ -27,7 +27,6 @@ void formatSpeed (double speed);
 static void resynchWrapper ( gpointer   callback_data,
                              guint      callback_action,
                              GtkWidget *menu_item );
-static void resynch (void);
 static void hostOkCallback (GtkWidget *widget,
                             gpointer   data);
 static void hostCancelCallback (GtkWidget *widget,
