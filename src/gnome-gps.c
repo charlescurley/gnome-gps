@@ -304,14 +304,16 @@ void formatAngle (double theAngle, gchar *buffer) {
 void formatLat (double latitude) {
     double latAbs = fabs (latitude);
     formatAngle (latAbs, latString);
-    (void) strncat (latString, latitude < 0 ? "S" : latitude > 0 ? "N" : "" , 2);
+    (void) strncat (latString, latitude < 0.0 ? "S" : latitude > 0.0 ? "N" : "",
+                    latitude == 0.0 ? 1 : 2);
     gtk_entry_set_text(entries[LAT], latString );
 }
 
 void formatLong (double longitude) {
     double longAbs = fabs (longitude);
     formatAngle (longAbs, longString);
-    (void) strncat (longString, longitude < 0 ? "W" : longitude > 0 ? "E" : "" , 2);
+    (void) strncat (longString, longitude < 0.0 ? "W" : longitude > 0.0 ? "E" : "",
+                    longitude == 0.0 ? 1 : 2);
     gtk_entry_set_text(entries[LONG], longString );
 }
 
