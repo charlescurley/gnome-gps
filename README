@@ -3,7 +3,7 @@ windowing system.
 
 It is copyright 2009-2010 Charles Curley, http://www.charlescurley.com/
 
-There isn't much to it, so thses notes should suffice:
+There isn't much to it, so these notes should suffice:
 
 * The background changes color according to the quality of the fix.
 
@@ -27,11 +27,11 @@ There isn't much to it, so thses notes should suffice:
 
 To compile, you should get everything you need with:
 
-apt-get install gnome-common
+apt-get install gnome-common libgps-dev
 
 Otherwise, you need:
 
-apt-get install gcc make libgtk2.0-dev
+apt-get install gcc make libgtk2.0-dev libgps-dev
 
 except on debian squeeze, where you may need:
 
