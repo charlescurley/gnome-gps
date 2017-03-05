@@ -797,21 +797,24 @@ void showData (void) {
     }
 
     if ((gpsdata.set & DEVICELIST_SET) && verbose) {
-        if (gpsdata.devices.ndevices == 1) {
-            (void) snprintf(tmpBuff, sizeof(tmpBuff),
-                            "One device seen: driver = %s: subtype = %s: activated = %f",
-                            gpsdata.devices.list[0].driver,
-                            gpsdata.devices.list[0].subtype,
-                            gpsdata.devices.list[0].activated);
-        } else {
-            /* We have multiple devices, which I've never seen, so
-             * punt. */
-            (void) snprintf(tmpBuff, sizeof(tmpBuff), "%d devices",
-                            gpsdata.devices.ndevices);
-        }
-        (void) printf ("set 0x%08x, (Devices) GPS Driver: %s\n",
-                       (unsigned int) gpsdata.set, tmpBuff);
+        if (gpsdata.devices.ndevices != 0) {
+            /* N.B: I have tested this with one device, but have not
+             * tested it with multiple devices. */
+            int i;
 
+            for (i = 0 ; i < gpsdata.devices.ndevices; i++ ) {
+                (void) snprintf(tmpBuff, sizeof(tmpBuff),
+                                "set 0x%08x, device %i: driver = %s: subtype = %s: activated = %f\n",
+                                (unsigned int) gpsdata.set, i,
+                                gpsdata.devices.list[0].driver,
+                                gpsdata.devices.list[0].subtype,
+                                gpsdata.devices.list[0].activated);
+                (void) printf (tmpBuff);
+            }
+        } else {
+            (void) printf ("set 0x%08x, no devices reported.\n",
+                (unsigned int) gpsdata.set);
+        }
         return;
     }
 
