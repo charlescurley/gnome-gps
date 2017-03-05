@@ -754,7 +754,10 @@ void showData (void) {
 
             if (verbose) {
                 (void) fprintf (stderr, "gps lost.\n");
-                (void) strcpy (tmpBuff, "driver = nil: subtype = nil: activated = 0.0");
+                (void) snprintf(tmpBuff, sizeof(tmpBuff),
+                                "driver = %s: subtype = %s: activated = %f",
+                                gpsdata.dev.driver, gpsdata.dev.subtype,
+                                gpsdata.dev.activated);
             }
             (void) snprintf (titleBuff, STRINGBUFFSIZE,
                              "%s: a simple GTK+ GPS monitor", baseName);
@@ -795,14 +798,11 @@ void showData (void) {
 
     if ((gpsdata.set & DEVICELIST_SET) && verbose) {
         if (gpsdata.devices.ndevices == 1) {
-            if (gpsdata.devices.list[0].activated < 1.0) {
-                (void) strcpy (tmpBuff, "driver = nil: subtype = nil: activated = 0.0");
-            } else {
-                (void) snprintf(tmpBuff, sizeof(tmpBuff), "driver = %s: subtype = %s: activated = %f",
-                                gpsdata.devices.list[0].driver,
-                                gpsdata.devices.list[0].subtype,
-                                gpsdata.devices.list[0].activated);
-            }
+            (void) snprintf(tmpBuff, sizeof(tmpBuff),
+                            "One device seen: driver = %s: subtype = %s: activated = %f",
+                            gpsdata.devices.list[0].driver,
+                            gpsdata.devices.list[0].subtype,
+                            gpsdata.devices.list[0].activated);
         } else {
             /* We have multiple devices, which I've never seen, so
              * punt. */
