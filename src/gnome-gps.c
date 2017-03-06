@@ -12,15 +12,27 @@
 
 #include <gps.h>                /* Not the same as gpsd.h */
 
-/* Do we recognize the current libgps API? We'll take 5.x or
- * greater. If you change these, change the "comments" string in the
- * aboutDialog as well. */
+/* Do we recognize the current libgps API? We'll take 5.1, or 6.1. If
+ * we correctly detect the version, we #define VERSIONSET. If not, the
+ * last test in this sequence fails, and we bomb out. */
 
-#if ( GPSD_API_MAJOR_VERSION != 5 )
+#if ( GPSD_API_MAJOR_VERSION == 5 && GPSD_API_MINOR_VERSION == 1 )
+#warning Setting up for version 5.1
+#define VERSION501
+#define VERSIONSET
+#endif  /* 5.1 */
+
+#if ( GPSD_API_MAJOR_VERSION == 6 && GPSD_API_MINOR_VERSION == 1 )
+#warning Setting up for version 6.1
+#define VERSION601
+#define VERSIONSET
+#endif  /* 6.1 */
+
+#ifndef VERSIONSET
 #error Unknown gps API protocol version; see gps.h for the current value of GPSD_API_MAJOR_VERSION
-#endif
+#endif  /* Unknown */
 
-#if ( GPSD_API_MAJOR_VERSION >= 5 && GPSD_API_MINOR_VERSION < 0 )
+#if ( GPSD_API_MINOR_VERSION < 0 )
 #error Unknown gps API protocol version; see gps.h for the current value of GPSD_API_MINOR_VERSION
 #endif
 
