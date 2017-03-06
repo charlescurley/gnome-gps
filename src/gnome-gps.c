@@ -48,6 +48,8 @@
 #include "gnome-gps.h"          /* prototypes and other goodies. */
 #include "icon.image.h"         /* prototypes for the icon image. */
 
+gchar *copyrightString = "Copyright © 2009-2017 Charles Curley\n";
+
 /* Settings that go into the configuration file. */
 typedef struct {
     gchar *port, *host, *angle, *units, *font, *gmt;
@@ -570,17 +572,22 @@ static void hostDialog( gpointer   callback_data,
 /* Some properties string arrays for the About dialog. */
 gchar *authors[2] =     { "Charles Curley, http://www.charlescurley.com/", NULL };
 gchar *documentors[2] = { "Charles Curley, http://www.charlescurley.com/", NULL };
+gchar commentLine[STRINGBUFFSIZE];
 
 static void aboutDialog( gpointer   callback_data,
                          guint      callback_action,
                          GtkWidget *menu_item ) {
+    (void) snprintf (commentLine, sizeof (commentLine),
+                     "A simple GTK+ GPS monitor.\n\nRed: No fix.\n"
+                     "Yellow: Two dimensional fix.\nGreen: Three dimensional fix.\n"
+                     "\"Save\" to save settings such as font and units\n"
+                     "Libgps API version %d.%d.\n",
+                     GPSD_API_MAJOR_VERSION, GPSD_API_MINOR_VERSION);
+
     gtk_show_about_dialog (GTK_WINDOW (window),
                            "authors", authors,
-                           "comments", "A simple GTK+ GPS monitor.\n\nRed: No fix.\n"
-                           "Yellow: Two dimensional fix.\nGreen: Three dimensional fix.\n"
-                           "Libgps API version 5.0.\n"
-                           "\"Save\" to save settings such as font and units.",
-                           "copyright", "Copyright © 2009-2013 Charles Curley.",
+                           "comments", commentLine,
+                           "copyright", copyrightString,
                            "documenters", documentors,
                            "license", "This program is released under the same terms as gpsd "
                            "itself, i.e under the BSD License. See the file COPYING in the "
@@ -1203,7 +1210,7 @@ int main ( int   argc,
         baseName = g_path_get_basename (g_strdup (argv[0]));
     }
 
-    (void) printf ("\n%s: Copyright © 2009-2013 Charles Curley\n", baseName);
+    (void) printf ("\n%s: %s", baseName, copyrightString);
 
     (void) printf ("This program is released under the same terms as gpsd itself, i.e.\n");
     (void) printf ("under the BSD License. See the file Copying in the gpsd distribution.\n");
