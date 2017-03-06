@@ -579,8 +579,9 @@ static void aboutDialog( gpointer   callback_data,
                      "A simple GTK+ GPS monitor.\n\nRed: No fix.\n"
                      "Yellow: Two dimensional fix.\nGreen: Three dimensional fix.\n"
                      "\"Save\" to save settings such as font and units\n"
-                     "Libgps API version %d.%d.\n",
-                     GPSD_API_MAJOR_VERSION, GPSD_API_MINOR_VERSION);
+                     "Libgps API version %d.%d.\n%s version: %s",
+                     GPSD_API_MAJOR_VERSION, GPSD_API_MINOR_VERSION,
+                     baseName, versionString);
 
     gtk_show_about_dialog (GTK_WINDOW (window),
                            "authors", authors,
