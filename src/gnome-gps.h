@@ -4,7 +4,9 @@
  * itself, i.e under the BSD License. See the file COPYING in the
  * distribution. This program comes with ABSOLUTELY NO WARRANTY. */
 
-char *versionString = "1.1";
+char *versionString = "1.2";
+
+gchar *copyrightString = "Copyright © 2009-2017 Charles Curley\n";
 
 /* prototypes */
 inline void preserve (GtkEntry *entry, gint index);

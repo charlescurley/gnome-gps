@@ -48,8 +48,6 @@
 #include "gnome-gps.h"          /* prototypes and other goodies. */
 #include "icon.image.h"         /* prototypes for the icon image. */
 
-gchar *copyrightString = "Copyright © 2009-2017 Charles Curley\n";
-
 /* Settings that go into the configuration file. */
 typedef struct {
     gchar *port, *host, *angle, *units, *font, *gmt;
