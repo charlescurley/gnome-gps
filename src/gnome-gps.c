@@ -36,7 +36,7 @@
 #error Unknown gps API protocol version; see gps.h for the current value of GPSD_API_MINOR_VERSION
 #endif
 
-#include <gtk/gtk.h>            /* "aptitude install libgtk2.0-dev" on
+#include <gtk/gtk.h>            /* "apt install libgtk2.0-dev" on
                                  * debian/ubuntu. */
 
 #include <math.h>               /* For isnan (), modf (), fabs () */
