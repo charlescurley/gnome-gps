@@ -1,5 +1,24 @@
 # gnome-gps make file. For GNU make.
 
+.PHONY: production
+production:
+	cd src && make production
+
+.PHONY: debug
+production:
+	cd src && make debug
+
+.PHONY: clean
+clean:
+	cd src && make clean
+
+.PHONY: install
+install:
+	cd src && make install
+
+.PHONY: uninstall
+uninstall:
+	cd src && make uninstall
 
 archive:
 	git archive --format=tar HEAD | bzip2 > ../gnome-gps.`date +%Y.%m.%d`.tar.bz2
