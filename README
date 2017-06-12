@@ -27,7 +27,7 @@ There isn't much to it, so these notes should suffice:
 
 To compile, you should get everything you need with:
 
-apt-get install gnome-common libgps-dev
+apt-get install gnome-common libgps-dev libgtk2.0-dev
 
 Otherwise, you need:
 
