@@ -5,7 +5,7 @@ production:
 	cd src && make production
 
 .PHONY: debug
-production:
+debug:
 	cd src && make debug
 
 .PHONY: clean
