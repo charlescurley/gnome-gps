@@ -7,9 +7,9 @@
 
 # Specify libraries, header files, etc.
 INPUTS = `pkg-config --cflags --libs gtk+-2.0 libgps`
-DEBUGFLAGS = -ggdb -Wall -c
+DEBUGFLAGS = -ggdb -Wall -c -Wno-deprecated-declarations
 DEBUGOBJS = gnome-gps.do icon.image.do
-PRODUCTFLAGS = -Wall -c
+PRODUCTFLAGS = -Wall -c -Wno-deprecated-declarations
 PRODUCTOBJS = gnome-gps.o icon.image.o
 
 SHARE=/usr/share/
