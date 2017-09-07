@@ -6,7 +6,7 @@
 
 /* Prerequisites. Any fairly recent version should do.
 
-   aptitude install gcc libgtk2.0-dev
+   apt install gcc libgtk2.0-dev
 
 */
 
@@ -130,6 +130,12 @@ GdkColor ThreeDFixColor = {0,      0, 0xffff,      0}; /* green */
 GdkColor TwoDFixColor   = {0, 0xff00, 0xff00,      0}; /* yellow */
 GdkColor NoFixColor     = {0, 0xff00,      0,      0}; /* red */
 GdkColor *oldColor = NULL;
+
+/* The name of the configuration directory. If it exists, in the home
+ * directory, we'll create and look for our configuration files
+ * here. */
+
+char *configDir = ".config";
 
 /* sendWatch: tell the gps daemon that we'd like to connect and
  * receive data, thank you. Use this after making a socket
@@ -1188,6 +1194,12 @@ void setActiveGmt (void) {
     }
 }
 
+/* A filter for scanning the main directory. Return true if the target
+ * directory exists. */
+int filter(const struct dirent *entry) {
+    return (strcmp(entry->d_name, configDir) == 0);
+}
+
 int main ( int   argc,
            char *argv[] ) {
     int ret = 0;
@@ -1238,7 +1250,39 @@ int main ( int   argc,
             haveHome = true;
 
             (void) strncpy (keyFileName, home, STRINGBUFFSIZE-1);
-            (void) strncat (keyFileName, "/.", (STRINGBUFFSIZE-1) - strlen (keyFileName));
+
+            /* If the ~/.config directory exists, use it. */
+            {
+
+                struct dirent **namelist;
+                int n = 0;
+
+                n = scandir(keyFileName, &namelist, filter, alphasort);
+                if (n == -1) {
+                    perror("scandir");
+                } else {
+
+                    if (n > 0) {
+                        /* We found our target, so add the last one found to the directory */
+                        (void) strncat (keyFileName, "/", (STRINGBUFFSIZE-1) - strlen (keyFileName));
+                        (void) strncat (keyFileName, namelist[n-1]->d_name, (STRINGBUFFSIZE-1) - strlen (keyFileName));
+                        (void) strncat (keyFileName, "/", (STRINGBUFFSIZE-1) - strlen (keyFileName));
+
+                        while (n--) {
+                            g_free(namelist[n]);
+                        }
+                    } else {
+                        /* If we didn't find any targets, first add a
+                         * slash, then a period because it's a hidden
+                         * file. */
+                        (void) strncat (keyFileName, "/.", (STRINGBUFFSIZE-1) - strlen (keyFileName));
+                    }
+                    g_free(namelist);
+                }
+            }
+
+            /* (void) strncat (keyFileName, "/.", (STRINGBUFFSIZE-1) - strlen (keyFileName)); */
+
             (void) strncat (keyFileName, baseName,
                             (STRINGBUFFSIZE-1) - strlen (keyFileName));
 
