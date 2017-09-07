@@ -44,6 +44,7 @@
 #include <unistd.h>             /* getopt stuff */
 #include <errno.h>
 #include <ctype.h>              /* tolower () */
+#include <sys/stat.h>           /* S_ISDIR () */
 
 #include "gnome-gps.h"          /* prototypes and other goodies. */
 #include "icon.image.h"         /* prototypes for the icon image. */
@@ -1197,7 +1198,23 @@ void setActiveGmt (void) {
 /* A filter for scanning the main directory. Return true if the target
  * directory exists. */
 int filter(const struct dirent *entry) {
-    return (strcmp(entry->d_name, configDir) == 0);
+    int ret = (strcmp(entry->d_name, configDir) == 0);
+
+#ifdef _DIRENT_HAVE_D_TYPE
+    /* Yes, we have directory types. */
+
+    /* No point in testing to be sure it's a directory if the name is
+     * wrong. */
+    if (ret == FALSE) return (ret);
+
+    /* This is a convoluted mess. We have to convert from the values
+     * returned in the directory entry to the types used in struct
+     * stat (man 2 stat) so we can test to see if it is a
+     * directory. */
+    ret = S_ISDIR (DTTOIF (entry->d_type));
+#endif
+
+    return (ret);
 }
 
 int main ( int   argc,
