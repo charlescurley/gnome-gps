@@ -871,6 +871,11 @@ void showData (void) {
 
         /* Guard against division of or by 0. */
         if (gpsdata.satellites_visible > 0 && gpsdata.satellites_used > 0) {
+            /* We have at least one satellite visible and at least one
+             * used in the fix. */
+            /* (void) printf ("Yes, we see %2d satellites and use %2d.\n", */
+            /*                gpsdata.satellites_visible, */
+            /*                gpsdata.satellites_used); */
             gtk_progress_bar_set_fraction (progress,
                                            (gdouble) gpsdata.satellites_used/
                                            (gdouble) gpsdata.satellites_visible);
@@ -882,10 +887,15 @@ void showData (void) {
         } else {
             gtk_progress_bar_set_fraction (progress, 0.0);
             if (gpsdata.satellites_visible > 0) {
+                /* We have at least one satellite visible and none used in
+                 * the fix. */
+                /* (void) printf ("We see %2d satellites.\n", */
+                /*                gpsdata.satellites_visible); */
                 (void) snprintf (banner, STRINGBUFFSIZE,
                                  "%2d satellites visible, no fix.",
                                  gpsdata.satellites_visible);
             } else {
+                /* No satellites visible, no fix. */
                 (void) snprintf (banner, STRINGBUFFSIZE,
                                  "No satellites visible, no fix.");
             }
