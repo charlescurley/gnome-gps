@@ -17,7 +17,6 @@ EXECDIR=/usr/local/bin/
 
 production: $(PRODUCTOBJS) gnome-gps.h icon.image.h
 	gcc -Wall -O2 gnome-gps.o icon.image.o -o gnome-gps $(INPUTS)
-	strip gnome-gps
 
 debug: $(DEBUGOBJS) gnome-gps.h icon.image.h
 	gcc -Wall gnome-gps.do icon.image.do -o gnome-gps $(INPUTS)
@@ -48,6 +47,7 @@ install:
 	cp gnome-gps.logo.png $(SHARE)gnome-gps
 	cp gnome-gps $(EXECDIR)
 	cp gnome-gps.desktop $(SHARE)applications
+	strip $(EXECDIR)gnome-gps
 
 uninstall:
 	rm -r $(SHARE)gnome-gps
