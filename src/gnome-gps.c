@@ -49,6 +49,8 @@
 #include "gnome-gps.h"          /* prototypes and other goodies. */
 #include "icon.image.h"         /* prototypes for the icon image. */
 
+#include <dirent.h>             /* directory manipulation. */
+
 /* Settings that go into the configuration file. */
 typedef struct {
     gchar *port, *host, *angle, *units, *font, *gmt;
@@ -1210,9 +1212,6 @@ void setActiveGmt (void) {
 int filter(const struct dirent *entry) {
     int ret = (strcmp(entry->d_name, configDir) == 0);
 
-#ifdef _DIRENT_HAVE_D_TYPE
-    /* Yes, we have directory types. */
-
     /* No point in testing to be sure it's a directory if the name is
      * wrong. */
     if (ret == FALSE) return (ret);
@@ -1222,7 +1221,6 @@ int filter(const struct dirent *entry) {
      * stat (man 2 stat) so we can test to see if it is a
      * directory. */
     ret = S_ISDIR (DTTOIF (entry->d_type));
-#endif
 
     return (ret);
 }
@@ -1307,8 +1305,6 @@ int main ( int   argc,
                     g_free(namelist);
                 }
             }
-
-            /* (void) strncat (keyFileName, "/.", (STRINGBUFFSIZE-1) - strlen (keyFileName)); */
 
             (void) strncat (keyFileName, baseName,
                             (STRINGBUFFSIZE-1) - strlen (keyFileName));
