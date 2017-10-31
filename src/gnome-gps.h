@@ -6,7 +6,7 @@
 
 char *versionString = "1.3";
 
-gchar *copyrightString = "Copyright © 2009-2017 Charles Curley\n";
+gchar *copyrightString = "Copyright © 2009 to the date of the most recent modification Charles Curley\n";
 
 /* prototypes */
 inline void preserve (GtkEntry *entry, gint index);

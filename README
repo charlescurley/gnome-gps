@@ -1,7 +1,11 @@
 This program is a straightforward gps monitor program using the GTK+
 windowing system.
 
-It is copyright 2009-2015 Charles Curley, http://www.charlescurley.com/
+It is copyright 2009 to the date of the most recent modification
+Charles Curley, http://www.charlescurley.com/
+
+This program is released under the same terms as gpsd itself, i.e.
+under the BSD License. See the file Copying in the gpsd distribution.
 
 There isn't much to it, so these notes should suffice:
 
