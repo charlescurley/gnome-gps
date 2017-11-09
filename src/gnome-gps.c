@@ -101,13 +101,22 @@ char angle = DEGREES;           /* How to display the angles in lat
                                  * and long. */
 gboolean gmt = true;            /* Display time in GMT or local? */
 
-gchar fixBuff[STRINGBUFFSIZE] = "No fix seen yet";
-gchar timeString[STRINGBUFFSIZE] = "No time yet";
-gchar latString[STRINGBUFFSIZE] = "No latitude yet";
-gchar longString[STRINGBUFFSIZE] = "No longitude yet";
-gchar altString[STRINGBUFFSIZE] = "No altitude yet";
-gchar speedString[STRINGBUFFSIZE] = "No speed yet";
-gchar trackString[STRINGBUFFSIZE] = "No track yet";
+gchar *fixBuffInit = "No fix seen yet";
+gchar *timeStringInit = "No time yet";
+gchar *latStringInit = "No latitude yet";
+gchar *longStringInit = "No longitude yet";
+gchar *altStringInit = "No altitude yet";
+gchar *speedStringInit = "No speed yet";
+gchar *trackStringInit = "No track yet";
+
+gchar fixBuff[STRINGBUFFSIZE];
+gchar timeString[STRINGBUFFSIZE];
+gchar latString[STRINGBUFFSIZE];
+gchar longString[STRINGBUFFSIZE];
+gchar altString[STRINGBUFFSIZE];
+gchar speedString[STRINGBUFFSIZE];
+gchar trackString[STRINGBUFFSIZE];
+
 gchar keyFileName[STRINGBUFFSIZE];
 gchar titleBuff[STRINGBUFFSIZE]; /* the title in the title bar */
 
@@ -153,6 +162,27 @@ inline void sendWatch (void) {
      * than gpsd's corrected nmea. */
     (void) sleep (1);
     (void) gps_stream(&gpsdata, WATCH_ENABLE | WATCH_JSON, NULL);
+}
+
+/* Initialize our string buffers as we come up, and again on
+ * resync. Use strcpy rather than strncpy because thes are all known
+ * sizes and locations. Not much chance of a buffer overflow,
+ * malicious or otherwise. */
+void initStrings (void) {
+    (void) strcpy (fixBuff, fixBuffInit);
+    (void) strcpy (timeString, timeStringInit);
+    (void) strcpy (latString, latStringInit);
+    (void) strcpy (longString, longStringInit);
+    (void) strcpy (altString, altStringInit);
+    (void) strcpy (speedString, speedStringInit);
+    (void) strcpy (trackString, trackStringInit);
+
+    gtk_entry_set_text(entries[TIME], timeString );
+    gtk_entry_set_text(entries[LAT], latString );
+    gtk_entry_set_text(entries[LONG], longString );
+    gtk_entry_set_text(entries[ALT], altString );
+    gtk_entry_set_text(entries[SPEED], speedString );
+    gtk_entry_set_text(entries[TRACK], trackString );
 }
 
 /* We have to change the background of the window (which gets the
@@ -437,6 +467,7 @@ static void resynch (void) {
     }
 
     gtk_progress_bar_set_fraction (progress, 0.0);
+    initStrings ();
     ret = gps_open(hostName, hostPort, &gpsdata);
     if (ret != 0) {
         if (verbose) {
@@ -448,7 +479,7 @@ static void resynch (void) {
                 perror (baseName);
             }
         }
-        gtk_progress_bar_set_text (progress, "No gpsd connection!");
+        gtk_progress_bar_set_text (progress, "Synch Failure: No gpsd connection!");
         haveConnection = false;
     } else {
         /* If we got here, we're good to go. */
@@ -1008,7 +1039,8 @@ void showData (void) {
 }
 
 /* Build a pair of display widgets, a label followed by an entry
- * box. */
+ * box. N.B.: This routine does not intialize the strings for the
+ * widgets. Do that in the calling function with initStrings. */
 static void buildPair (gint index, gchar *labelText, GtkWidget *table,
                        gint left, gint top) {
     GtkWidget *child;
@@ -1028,7 +1060,6 @@ static void buildPair (gint index, gchar *labelText, GtkWidget *table,
     /* And now the non-editable text box to show it. */
     child = gtk_entry_new ();
     gtk_editable_set_editable(GTK_EDITABLE (child), true);
-    gtk_entry_set_text(GTK_ENTRY (child), "Not Yet Seen" );
 
     /* Now ask for a slightly longer time widget. */
     gtk_entry_set_width_chars (GTK_ENTRY (child), left ? 22 : 17);
@@ -1501,6 +1532,8 @@ int main ( int   argc,
     buildPair (TRACK,   "Track",   table, 1, 1);
     buildPair (ALT,     "Alt",     table, 0, 2);
     buildPair (TIME,    "Time",    table, 1, 2);
+
+    initStrings ();
 
     /* Set up the satellite progress bar. */
     progress = (GtkProgressBar *) gtk_progress_bar_new ();
