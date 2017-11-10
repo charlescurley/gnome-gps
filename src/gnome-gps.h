@@ -66,7 +66,7 @@ void showData (void);
 static void buildPair (gint index, gchar *labelText, GtkWidget *table,
                        gint left, gint top);
 gint gpsPoll (gpointer data);
-void saveKeyFile (GKeyFile *keyFile);
+gchar *saveKeyFile (GKeyFile *keyFile);
 void setActiveUnits (void);
 void setActiveAngle (void);
 int main ( int argc, char *argv[] );

@@ -124,6 +124,9 @@ gchar titleBuff[STRINGBUFFSIZE]; /* the title in the title bar */
 char hostName[STRINGBUFFSIZE] = "localhost";
 char hostPort[STRINGBUFFSIZE] = DEFAULT_GPSD_PORT;
 
+/* A place for functions to put return strings. */
+char returnString[STRINGBUFFSIZE];
+
 const gchar *baseName;          /* So we can print out only the base
                                    name in the help. */
 
@@ -687,8 +690,10 @@ static void setDegrees( gpointer   callback_data,
 static void saveState( gpointer   callback_data,
                        guint      callback_action,
                        GtkWidget *menu_item ) {
+        gchar *results;
     if (haveHome) {
-        saveKeyFile (keyFile);
+        results = saveKeyFile (keyFile);
+        gtk_progress_bar_set_text (progress, results);
     }
 }
 
@@ -1100,7 +1105,7 @@ gint gpsPoll (gpointer data) {
 }
 
 /* Collect our changed settings and preserve them. */
-void saveKeyFile (GKeyFile *keyFile) {
+gchar *saveKeyFile (GKeyFile *keyFile) {
     FILE *file;
     gchar *string = NULL;
     gsize length = 0;
@@ -1108,9 +1113,10 @@ void saveKeyFile (GKeyFile *keyFile) {
     gchar sandbox[128];
     GtkStyle *style;
     const gchar *fontName;
+    int ret = 0;                /* for return values from functions. */
 
     if (haveHome == false) {
-        return;
+            return ("No home file to save to!");
     }
 
     g_key_file_set_value (keyFile, baseName, "host", hostName);
@@ -1136,26 +1142,42 @@ void saveKeyFile (GKeyFile *keyFile) {
     string = g_key_file_to_data (keyFile, &length, NULL);
 
     if (length > 0 && string != NULL) {
-        if (verbose) {
-            (void) printf ("Length: %d. Configuration string: '%s'\n",
-                           (int) length, string);
-        }
+            if (verbose) {
+                    (void) printf ("Length: %d. Configuration string: '%s'\n",
+                                   (int) length, string);
+            }
 
-        file = fopen (keyFileName, "w");
-        if (file == NULL) {
-            (void) fprintf (stderr, "Could not open file '%s'.\n",
-                            keyFileName);
-            return;
-        }
-        size = fwrite (string, length, 1, file);
-        if (size != 1) {
-            (void) fprintf (stderr, "Failure writing to file '%s'.\n",
-                            keyFileName);
-            return;
-        }
-        (void) fclose (file);
+            file = fopen (keyFileName, "w");
+            if (file == NULL) {
+                    (void) snprintf (returnString, STRINGBUFFSIZE,
+                                     "Could not open file '%s'.\n",
+                                     keyFileName);
+                    fprintf (stderr, returnString);
+                    return (returnString);
+            }
+            size = fwrite (string, length, 1, file);
+            if (size != 1) {
+                    (void) snprintf (returnString, STRINGBUFFSIZE,
+                                     "Failure writing to file '%s'.\n",
+                                     keyFileName);
+                    fprintf (stderr, returnString);
+                    return (returnString);
+            }
+            ret = fclose (file);
+            if (ret == EOF) {
+                    (void) snprintf (returnString, STRINGBUFFSIZE,
+                                     "Failure closing file '%s'. %s\n",
+                                     keyFileName, strerror(errno));
+                    fprintf (stderr, returnString);
+                    return (returnString);
+            }
+            (void) snprintf (returnString, STRINGBUFFSIZE,
+                             "Settings saved to file '%s'.",
+                             keyFileName);
+            return (returnString);
+    } else {
+            return ("Failure gathering parameters to save.");
     }
-
 }
 
 /* Having initialized the angles, we had better set the menu entry to
