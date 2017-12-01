@@ -873,7 +873,7 @@ void showData (void) {
 
             for (i = 0 ; i < gpsdata.devices.ndevices; i++ ) {
                 (void) printf("Device no. %i: driver = %s: subtype (if any) = %s\n",
-                      (unsigned int) gpsdata.set, i,
+                      i,
                       gpsdata.devices.list[0].driver,
                       gpsdata.devices.list[0].subtype);
             }
