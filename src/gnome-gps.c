@@ -142,9 +142,11 @@ inline void preserve (GtkEntry *entry, gint index) {
 }
 
 /* Some colors for various fix states */
+/*                        pixel, red,  green,   blue. */
 GdkColor ThreeDFixColor = {0,      0, 0xffff,      0}; /* green */
 GdkColor TwoDFixColor   = {0, 0xff00, 0xff00,      0}; /* yellow */
 GdkColor NoFixColor     = {0, 0xff00,      0,      0}; /* red */
+GdkColor NoGpsdColor    = {0, 0x8000, 0x8000, 0x8000}; /* grey */
 GdkColor *oldColor = NULL;
 
 /* The name of the configuration directory. If it exists, in the home
@@ -461,7 +463,7 @@ void formatSpeed (double speed) {
 static void resynch (void) {
     int ret = 0;
 
-    setColor (&NoFixColor);
+    setColor (&NoGpsdColor);
 
     if (haveConnection == true) {
         (void) gps_stream(&gpsdata, WATCH_DISABLE, NULL);
@@ -620,7 +622,8 @@ static void aboutDialog( gpointer   callback_data,
                          guint      callback_action,
                          GtkWidget *menu_item ) {
     (void) snprintf (commentLine, sizeof (commentLine),
-                     "A simple GTK+ GPS monitor.\n\nRed: No fix.\n"
+                     "A simple GTK+ GPS monitor.\n\n"
+                     "Grey: No GPS daemon.\nRed: No fix.\n"
                      "Yellow: Two dimensional fix.\nGreen: Three dimensional fix.\n"
                      "\"Save\" to save settings such as font and units.\n\n"
                      "libgps API version %d.%d.\n%s version %s.",
@@ -814,7 +817,7 @@ void showData (void) {
 
             gtk_progress_bar_set_fraction (progress, 0.0);
             gtk_progress_bar_set_text (progress, "GPS lost!");
-            setColor (&NoFixColor);
+            setColor (&NoGpsdColor);
 
             if (verbose) {
                 (void) fprintf (stderr, "gps lost.\n");
@@ -1581,7 +1584,8 @@ int main ( int   argc,
         gtk_widget_modify_style (GTK_WIDGET (progress), style);
     }
 
-    setColor (&NoFixColor);
+    /* setColor (&NoGpsdColor); */
+
     /* Always remember this step, this tells GTK that our preparation
      * for this window is complete, and it can now be displayed. */
     gtk_widget_show_all (window);
