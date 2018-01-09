@@ -11,6 +11,8 @@ There isn't much to it, so these notes should suffice:
 
 * The background changes color according to the quality of the fix.
 
+  * Grey: No GPSD connection.
+
   * Red: No fix.
 
   * Yellow: Two dimensional fix, i.e. altitude is invalid.
