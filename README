@@ -33,15 +33,15 @@ There isn't much to it, so these notes should suffice:
 
 To compile, you should get everything you need with:
 
-apt-get install gnome-common libgps-dev libgtk2.0-dev
+apt install gnome-common libgps-dev libgtk2.0-dev
 
 Otherwise, you need:
 
-apt-get install gcc make libgtk2.0-dev libgps-dev
+apt install gcc make libgtk2.0-dev libgps-dev
 
 except on debian squeeze, where you may need:
 
-apt-get -t squeeze-backports install gcc make libgtk2.0-dev
+apt -t squeeze-backports install gcc make libgtk2.0-dev
 
 There is a make target "astyle". This is set up to run astyle so you
 can have a suitable style in your contributions (hint, hint...). You
