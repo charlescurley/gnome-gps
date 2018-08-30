@@ -37,6 +37,9 @@ icon.image.do: icon.image.c
 clean:
 	rm gnome-gps *.o *.do
 
+astyle:
+	astyle --indent=spaces=4 --style=attach --max-code-length=120 *.c *.h
+
 archive:
 	git archive --format=tar HEAD | bzip2 > ../../gnome-gps.`date +%Y.%m.%d`.tar.bz2
 	cd ../../ && md5sum gnome-gps.`date +%Y.%m.%d`.tar.bz2  > gnome-gps.`date +%Y.%m.%d`.md5sum

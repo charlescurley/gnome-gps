@@ -42,3 +42,9 @@ apt-get install gcc make libgtk2.0-dev libgps-dev
 except on debian squeeze, where you may need:
 
 apt-get -t squeeze-backports install gcc make libgtk2.0-dev
+
+There is a make target "astyle". This is set up to run astyle so you
+can have a suitable style in your contributions (hint, hint...). You
+will need astyle if you don't already have it.
+
+apt install astyle

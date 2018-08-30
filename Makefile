@@ -8,6 +8,10 @@ production:
 debug:
 	cd src && make debug
 
+.PHONY: astyle
+astyle:
+	cd src && make astyle
+
 .PHONY: clean
 clean:
 	cd src && make clean
