@@ -139,7 +139,8 @@ const gchar *baseName;          /* So we can print out only the base
 /* SIZE must be last as we use it to size the array and in related
  * code. */
 enum entryNames { LAT, LONG, ALT, SPEED, TRACK,
-                  TIME, SIZE } entryNames;
+                  TIME, SIZE
+                } entryNames;
 
 GtkEntry *entries[SIZE];
 
@@ -340,8 +341,8 @@ void formatAngle (double theAngle, gchar *buffer) {
 
     switch (angle) {
 
-        /* Use the default to silently handle errors and fall through
-         * to the substitute case. */
+    /* Use the default to silently handle errors and fall through
+     * to the substitute case. */
     default:
         angle = DEGREES;
     case DEGREES:
@@ -381,7 +382,7 @@ void formatLong (double longitude) {
 }
 
 char *gnome_gps_unix_to_iso8601(timestamp_t fixtime,
-                                     char isotime[], size_t len)
+                                char isotime[], size_t len)
 /* Unix time to ISO8601. Filched from gpsd's gpsutils.c. example:
  * 2007-12-11T23:38:51.033 */
 {
@@ -441,24 +442,24 @@ void formatSpeed (double speed) {
     case KNOTS:
         speed *= MPS_TO_KNOTS;
         formatString = speed < 10.0 ? "%.1f knots"
-            : "%f knots" ;
+                       : "%f knots" ;
         break;
 
     case US:
         speed *= MPS_TO_MPH;
         formatString = speed < 10.0 ? "%.1f miles per hour"
-            : "%.0f miles per hour" ;
+                       : "%.0f miles per hour" ;
         break;
 
-        /* Use the default to silently handle errors and fall through
-         * to the substitute case. */
+    /* Use the default to silently handle errors and fall through
+     * to the substitute case. */
     default:
         units = METRIC;
 
     case METRIC:
         speed *= MPS_TO_KPH;
         formatString =  speed < 10.0 ? "%.1f km per hour"
-            : "%.0f km per hour";
+                        : "%.0f km per hour";
         break;
     }
 
@@ -699,7 +700,7 @@ static void setDegrees( gpointer   callback_data,
 static void saveState( gpointer   callback_data,
                        guint      callback_action,
                        GtkWidget *menu_item ) {
-        gchar *results;
+    gchar *results;
     if (haveHome) {
         results = saveKeyFile (keyFile);
         gtk_progress_bar_set_text (progress, results);
@@ -711,7 +712,7 @@ static void fontApplyCallback (GtkWidget *widget,
     gchar *theFont = NULL;
 
     theFont = gtk_font_selection_dialog_get_font_name
-        (GTK_FONT_SELECTION_DIALOG (fontDialog));
+              (GTK_FONT_SELECTION_DIALOG (fontDialog));
 
     if (theFont != NULL) {
         GtkRcStyle *style;
@@ -764,7 +765,7 @@ static void setFont( gpointer   callback_data,
     fontName = pango_font_description_to_string (style->font_desc);
 
     (void) gtk_font_selection_dialog_set_font_name
-        (GTK_FONT_SELECTION_DIALOG (fontDialog), fontName);
+    (GTK_FONT_SELECTION_DIALOG (fontDialog), fontName);
     gtk_font_selection_dialog_set_preview_text (
         GTK_FONT_SELECTION_DIALOG(fontDialog), timeString);
 
@@ -872,9 +873,9 @@ void showData (void) {
     if ((gpsdata.set & DEVICELIST_SET) && verbose) {
         gpsdata.set &= ~(DEVICELIST_SET);
         printf ("set 0x%08x, %d device%s found.\n",
-            (int) gpsdata.set,
-            gpsdata.devices.ndevices,
-            gpsdata.devices.ndevices == 1 ? "" : "s");
+                (int) gpsdata.set,
+                gpsdata.devices.ndevices,
+                gpsdata.devices.ndevices == 1 ? "" : "s");
         if (gpsdata.devices.ndevices >= 1) {
             /* N.B: I have tested this with one device, but have not
              * tested it with multiple devices. */
@@ -882,13 +883,13 @@ void showData (void) {
 
             for (i = 0 ; i < gpsdata.devices.ndevices; i++ ) {
                 (void) printf("Device no. %i: driver = %s: subtype (if any) = %s\n",
-                      i,
-                      gpsdata.devices.list[0].driver,
-                      gpsdata.devices.list[0].subtype);
+                              i,
+                              gpsdata.devices.list[0].driver,
+                              gpsdata.devices.list[0].subtype);
             }
         } else {
             (void) printf ("set 0x%08x, no devices reported.\n",
-                (unsigned int) gpsdata.set);
+                           (unsigned int) gpsdata.set);
         }
         return;
     }
@@ -1127,7 +1128,7 @@ gchar *saveKeyFile (GKeyFile *keyFile) {
     int ret = 0;                /* for return values from functions. */
 
     if (haveHome == false) {
-            return ("No home file to save to!");
+        return ("No home file to save to!");
     }
 
     g_key_file_set_value (keyFile, baseName, "host", hostName);
@@ -1153,41 +1154,41 @@ gchar *saveKeyFile (GKeyFile *keyFile) {
     string = g_key_file_to_data (keyFile, &length, NULL);
 
     if (length > 0 && string != NULL) {
-            if (verbose) {
-                    (void) printf ("Length: %d. Configuration string: '%s'\n",
-                                   (int) length, string);
-            }
+        if (verbose) {
+            (void) printf ("Length: %d. Configuration string: '%s'\n",
+                           (int) length, string);
+        }
 
-            file = fopen (keyFileName, "w");
-            if (file == NULL) {
-                    (void) snprintf (returnString, STRINGBUFFSIZE,
-                                     "Could not open file '%s'.\n",
-                                     keyFileName);
-                    fprintf (stderr, returnString);
-                    return (returnString);
-            }
-            size = fwrite (string, length, 1, file);
-            if (size != 1) {
-                    (void) snprintf (returnString, STRINGBUFFSIZE,
-                                     "Failure writing to file '%s'.\n",
-                                     keyFileName);
-                    fprintf (stderr, returnString);
-                    return (returnString);
-            }
-            ret = fclose (file);
-            if (ret == EOF) {
-                    (void) snprintf (returnString, STRINGBUFFSIZE,
-                                     "Failure closing file '%s'. %s\n",
-                                     keyFileName, strerror(errno));
-                    fprintf (stderr, returnString);
-                    return (returnString);
-            }
+        file = fopen (keyFileName, "w");
+        if (file == NULL) {
             (void) snprintf (returnString, STRINGBUFFSIZE,
-                             "Settings saved to file '%s'.",
+                             "Could not open file '%s'.\n",
                              keyFileName);
+            fprintf (stderr, returnString);
             return (returnString);
+        }
+        size = fwrite (string, length, 1, file);
+        if (size != 1) {
+            (void) snprintf (returnString, STRINGBUFFSIZE,
+                             "Failure writing to file '%s'.\n",
+                             keyFileName);
+            fprintf (stderr, returnString);
+            return (returnString);
+        }
+        ret = fclose (file);
+        if (ret == EOF) {
+            (void) snprintf (returnString, STRINGBUFFSIZE,
+                             "Failure closing file '%s'. %s\n",
+                             keyFileName, strerror(errno));
+            fprintf (stderr, returnString);
+            return (returnString);
+        }
+        (void) snprintf (returnString, STRINGBUFFSIZE,
+                         "Settings saved to file '%s'.",
+                         keyFileName);
+        return (returnString);
     } else {
-            return ("Failure gathering parameters to save.");
+        return ("Failure gathering parameters to save.");
     }
 }
 
@@ -1196,8 +1197,8 @@ gchar *saveKeyFile (GKeyFile *keyFile) {
 void setActiveAngle (void) {
     switch (angle) {
 
-        /* Use the default to silently handle errors and fall through
-         * to the substitute case. */
+    /* Use the default to silently handle errors and fall through
+     * to the substitute case. */
     default:
         angle = DEGREES;
 
@@ -1227,8 +1228,8 @@ void setActiveAngle (void) {
 void setActiveUnits (void) {
     switch (units) {
 
-        /* Use the default to silently handle errors and fall through
-         * to the substitute case. */
+    /* Use the default to silently handle errors and fall through
+     * to the substitute case. */
     default:
         units = US;
     case US:
@@ -1254,8 +1255,8 @@ void setActiveUnits (void) {
 void setActiveGmt (void) {
     switch (gmt) {
 
-        /* Use the default to silently handle errors and fall through
-         * to the substitute case. */
+    /* Use the default to silently handle errors and fall through
+     * to the substitute case. */
     default:
         gmt = true;
     case true:
@@ -1505,7 +1506,7 @@ int main ( int   argc,
         /* Set our icon. */
         gtk_window_set_icon ((GtkWindow *)window,
                              gdk_pixbuf_new_from_inline ( -1, my_pixbuf,
-                                                          false, NULL));
+                                     false, NULL));
 
         /* When the window is given the "delete_event" signal (this is
          * given by the window manager, usually by the "close" option,
