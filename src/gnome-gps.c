@@ -976,9 +976,10 @@ void showData (void) {
             (void) strcpy (fixBuff, "No fix");
             fixStatus = "";
 
-#ifdef VERSION501
+/* This ifdef was obvioulsy incorrect! */
+/* #ifdef VERSION501 */
         case STATUS_DGPS_FIX:
-#endif
+/* #endif */
 
             if (gpsdata.set & MODE_SET) {
                 switch (gpsdata.fix.mode) {
@@ -1100,7 +1101,11 @@ gint gpsPoll (gpointer data) {
 
     if (gps_waiting (&gpsdata, 200000) == true) {
         errno = 0;
+#if GPSD_API_MAJOR_VERSION >= 7 /* API change. */
+        if (gps_read (&gpsdata, NULL, 0) == -1) {
+#else
         if (gps_read (&gpsdata) == -1) {
+#endif
             if (errno == 0) {
                 gtk_progress_bar_set_text (progress, "Lost contact with gpsd.");
             } else {
