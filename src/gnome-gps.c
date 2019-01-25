@@ -34,6 +34,12 @@
 #define VERSIONSET
 #endif  /* 7.0 */
 
+#if ( GPSD_API_MAJOR_VERSION == 8 && GPSD_API_MINOR_VERSION == 0 )
+#warning Setting up for version 8.0
+#define VERSION800
+#define VERSIONSET
+#endif  /* 8.0 */
+
 #ifndef VERSIONSET
 #error Unknown gps API protocol version; see gps.h for the current value of GPSD_API_MAJOR_VERSION
 #endif  /* Unknown */
