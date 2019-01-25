@@ -6,7 +6,9 @@
 .SUFFIXES: .c .o .do
 
 # Specify libraries, header files, etc.
-INPUTS = `pkg-config --cflags --libs gtk+-2.0 libgps`
+CINPUTS = `pkg-config --cflags gtk+-2.0 libgps`
+LINPUTS = `pkg-config --libs   gtk+-2.0 libgps`
+
 DEBUGFLAGS = -ggdb -Wall -c -Wno-deprecated-declarations
 DEBUGOBJS = gnome-gps.do icon.image.do
 PRODUCTFLAGS = -Wall -c -Wno-deprecated-declarations
@@ -16,23 +18,23 @@ SHARE=/usr/share/
 EXECDIR=/usr/local/bin/
 
 production: $(PRODUCTOBJS) gnome-gps.h icon.image.h
-	gcc -Wall -O2 gnome-gps.o icon.image.o -o gnome-gps $(INPUTS)
+	gcc -Wall -O2 gnome-gps.o icon.image.o -o gnome-gps $(LINPUTS)
 
 debug: $(DEBUGOBJS) gnome-gps.h icon.image.h
-	gcc -Wall gnome-gps.do icon.image.do -o gnome-gps $(INPUTS)
+	gcc -Wall gnome-gps.do icon.image.do -o gnome-gps $(LINPUTS)
 
 
 gnome-gps.o: gnome-gps.c gnome-gps.h icon.image.h
-	gcc -O2 -o gnome-gps.o $(PRODUCTFLAGS) gnome-gps.c $(INPUTS)
+	gcc -O2 -o gnome-gps.o $(PRODUCTFLAGS) gnome-gps.c $(CINPUTS)
 
 icon.image.o: icon.image.c
-	gcc -O2 -o icon.image.o $(PRODUCTFLAGS) icon.image.c $(INPUTS)
+	gcc -O2 -o icon.image.o $(PRODUCTFLAGS) icon.image.c $(CINPUTS)
 
 gnome-gps.do: gnome-gps.c gnome-gps.h icon.image.h
-	gcc -O2 -o gnome-gps.do $(DEBUGFLAGS) gnome-gps.c $(INPUTS)
+	gcc -O2 -o gnome-gps.do $(DEBUGFLAGS) gnome-gps.c $(CINPUTS)
 
 icon.image.do: icon.image.c
-	gcc -O2 -o icon.image.do $(DEBUGFLAGS) icon.image.c $(INPUTS)
+	gcc -O2 -o icon.image.do $(DEBUGFLAGS) icon.image.c $(CINPUTS)
 
 clean:
 	rm gnome-gps *.o *.do
