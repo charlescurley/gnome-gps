@@ -982,10 +982,10 @@ void showData (void) {
             (void) strcpy (fixBuff, "No fix");
             fixStatus = "";
 
-/* This ifdef was obvioulsy incorrect! */
-/* #ifdef VERSION501 */
+        /* This ifdef was obvioulsy incorrect! */
+        /* #ifdef VERSION501 */
         case STATUS_DGPS_FIX:
-/* #endif */
+            /* #endif */
 
             if (gpsdata.set & MODE_SET) {
                 switch (gpsdata.fix.mode) {
