@@ -1531,9 +1531,15 @@ int main ( int   argc,
                             GPSD_API_MINOR_VERSION);
 
         default:        /* '?' */
+#if GPSD_API_MAJOR_VERSION >= 7 /* API change. */
+            (void) fprintf(stderr,
+                           "Usage: %s [-d d] [-j] [-m] [-k] [-p port] [-u] [-v] [-V] [host]\n",
+                           baseName);
+#else
             (void) fprintf(stderr,
                            "Usage: %s [-d d] [-m] [-k] [-p port] [-u] [-v] [-V] [host]\n",
                            baseName);
+#endif
             return(-2);
         }
     }
