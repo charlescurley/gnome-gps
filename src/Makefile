@@ -58,3 +58,5 @@ uninstall:
 	rm -r $(SHARE)gnome-gps
 	rm $(EXECDIR)gnome-gps
 	rm $(SHARE)applications/gnome-gps.desktop
+
+.PHONY: production
