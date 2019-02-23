@@ -20,8 +20,8 @@ EXECDIR=/usr/local/bin/
 gnome-gps: $(PRODUCTOBJS) gnome-gps.h icon.image.h
 	gcc -Wall -O2 gnome-gps.o icon.image.o -o gnome-gps $(LINPUTS)
 
-debug-gps: $(DEBUGOBJS) gnome-gps.h icon.image.h
-	gcc -Wall gnome-gps.do icon.image.do -o debug-gps $(LINPUTS)
+debug: $(DEBUGOBJS) gnome-gps.h icon.image.h
+	gcc -Wall gnome-gps.do icon.image.do -o debug $(LINPUTS)
 
 
 gnome-gps.o: gnome-gps.c gnome-gps.h icon.image.h
@@ -37,7 +37,7 @@ icon.image.do: icon.image.c
 	gcc -O2 -o icon.image.do $(DEBUGFLAGS) icon.image.c $(CINPUTS)
 
 clean:
-	rm gnome-gps debug-gps *.o *.do
+	rm gnome-gps debug *.o *.do
 
 astyle:
 	astyle --indent=spaces=4 --style=attach --max-code-length=120 *.c *.h
@@ -58,5 +58,3 @@ uninstall:
 	rm -r $(SHARE)gnome-gps
 	rm $(EXECDIR)gnome-gps
 	rm $(SHARE)applications/gnome-gps.desktop
-
-.PHONY: production
