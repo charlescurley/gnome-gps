@@ -17,11 +17,11 @@ PRODUCTOBJS = gnome-gps.o icon.image.o
 SHARE=/usr/share/
 EXECDIR=/usr/local/bin/
 
-production: $(PRODUCTOBJS) gnome-gps.h icon.image.h
+gnome-gps: $(PRODUCTOBJS) gnome-gps.h icon.image.h
 	gcc -Wall -O2 gnome-gps.o icon.image.o -o gnome-gps $(LINPUTS)
 
-debug: $(DEBUGOBJS) gnome-gps.h icon.image.h
-	gcc -Wall gnome-gps.do icon.image.do -o gnome-gps $(LINPUTS)
+debug-gps: $(DEBUGOBJS) gnome-gps.h icon.image.h
+	gcc -Wall gnome-gps.do icon.image.do -o debug-gps $(LINPUTS)
 
 
 gnome-gps.o: gnome-gps.c gnome-gps.h icon.image.h
@@ -37,7 +37,7 @@ icon.image.do: icon.image.c
 	gcc -O2 -o icon.image.do $(DEBUGFLAGS) icon.image.c $(CINPUTS)
 
 clean:
-	rm gnome-gps *.o *.do
+	rm gnome-gps debug-gps *.o *.do
 
 astyle:
 	astyle --indent=spaces=4 --style=attach --max-code-length=120 *.c *.h

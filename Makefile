@@ -1,8 +1,8 @@
 # gnome-gps make file. For GNU make.
 
-.PHONY: production
-production:
-	cd src && make production
+.PHONY: gnome-gps
+gnome-gps:
+	cd src && make gnome-gps
 
 .PHONY: debug
 debug:
