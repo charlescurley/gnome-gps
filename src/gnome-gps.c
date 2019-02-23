@@ -65,6 +65,15 @@
 #include <dirent.h>             /* directory manipulation, dirent
                                  * stuff. */
 
+#if GPSD_API_MAJOR_VERSION >= 7
+/* from <gps_json.h> */
+#define GPS_JSON_RESPONSE_MAX   4096
+
+bool showMessage = false;
+char gpsdMessage[GPS_JSON_RESPONSE_MAX];
+size_t gpsdMessageLen = 0;
+#endif
+
 /* Settings that go into the configuration file. */
 typedef struct {
     gchar *port, *host, *angle, *units, *font, *gmt;
@@ -817,6 +826,18 @@ void showData (void) {
     char tmpBuff[STRINGBUFFSIZE];   /* generic temporary holding. */
     char *fixStatus = "DGPS ";  /* Default, if we even use it. */
 
+#if GPSD_API_MAJOR_VERSION >= 7
+    if (showMessage == true) {
+        int len;
+        len = strlen (gpsdMessage);
+        if ( '\r' == gpsdMessage[len - 1]) {
+            /* remove any trailing \r */
+            gpsdMessage[len - 1] = '\0';
+        }
+        printf ("%s\n", gpsdMessage);
+    }
+#endif
+
     /* Some things we ignore. */
     if (gpsdata.set & POLICY_SET) {
         gpsdata.set &= ~(POLICY_SET);
@@ -1109,7 +1130,7 @@ gint gpsPoll (gpointer data) {
     if (gps_waiting (&gpsdata, 200000) == true) {
         errno = 0;
 #if GPSD_API_MAJOR_VERSION >= 7 /* API change. */
-        if (gps_read (&gpsdata, NULL, 0) == -1) {
+        if (gps_read (&gpsdata, gpsdMessage, gpsdMessageLen) == -1) {
 #else
         if (gps_read (&gpsdata) == -1) {
 #endif
@@ -1443,7 +1464,11 @@ int main ( int   argc,
     gtk_init (&argc, &argv);
 
     /* for option processing. */
+#if GPSD_API_MAJOR_VERSION >= 7 /* API change. */
+    char *optstring = "d:jkmp:uvV";
+#else
     char *optstring = "d:kmp:uvV";
+#endif
     int opt = 0;
 
     while (( opt = getopt (argc, argv, optstring)) != -1) {
@@ -1472,6 +1497,13 @@ int main ( int   argc,
             }
             break;
 
+#if GPSD_API_MAJOR_VERSION >= 7 /* API change. */
+        case 'j':
+            showMessage = true;
+            gpsdMessageLen = GPS_JSON_RESPONSE_MAX;
+            break;
+#endif
+
         case US:
             units = opt;
             break;
@@ -1499,9 +1531,15 @@ int main ( int   argc,
                             GPSD_API_MINOR_VERSION);
 
         default:        /* '?' */
+#if GPSD_API_MAJOR_VERSION >= 7 /* API change. */
+            (void) fprintf(stderr,
+                           "Usage: %s [-d d] [-j] [-m] [-k] [-p port] [-u] [-v] [-V] [host]\n",
+                           baseName);
+#else
             (void) fprintf(stderr,
                            "Usage: %s [-d d] [-m] [-k] [-p port] [-u] [-v] [-V] [host]\n",
                            baseName);
+#endif
             return(-2);
         }
     }
