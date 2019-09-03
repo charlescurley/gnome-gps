@@ -9,9 +9,9 @@
 CINPUTS = `pkg-config --cflags gtk+-2.0 libgps`
 LINPUTS = `pkg-config --libs   gtk+-2.0 libgps`
 
-DEBUGFLAGS = -ggdb -Wall -c -Wno-deprecated-declarations $(CFLAGS)
+DEBUGFLAGS = -ggdb -Wall -c -Wno-deprecated-declarations -Wno-format-truncation $(CFLAGS)
 DEBUGOBJS = gnome-gps.do icon.image.do
-PRODUCTFLAGS = -Wall -c -Wno-deprecated-declarations  $(CFLAGS)
+PRODUCTFLAGS = -Wall -c -Wno-deprecated-declarations -Wno-format-truncation $(CFLAGS)
 PRODUCTOBJS = gnome-gps.o icon.image.o
 
 SHARE=/usr/share/
