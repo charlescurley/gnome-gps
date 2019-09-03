@@ -1351,6 +1351,7 @@ int main ( int   argc,
 
     (void) printf ("This program is released under the same terms as gpsd itself, i.e.\n");
     (void) printf ("under the BSD License. See the file Copying in the gpsd distribution.\n");
+    (void) printf ("libgps API version %d.%d.\n", GPSD_API_MAJOR_VERSION, GPSD_API_MINOR_VERSION);
 
     (void) printf ("\nThis program comes with ABSOLUTELY NO WARRANTY.\n");
 
