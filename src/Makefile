@@ -39,8 +39,9 @@ icon.image.do: icon.image.c
 clean:
 	rm gnome-gps debug *.o *.do
 
-astyle:
+validate:
 	astyle --indent=spaces=4 --style=attach --max-code-length=120 *.c *.h
+	desktop-file-validate gnome-gps.desktop
 
 archive:
 	git archive --format=tar HEAD | bzip2 > ../../gnome-gps.`date +%Y.%m.%d`.tar.bz2
@@ -51,7 +52,8 @@ install:
 	mkdir -p $(SHARE)gnome-gps
 	cp gnome-gps.logo.png $(SHARE)gnome-gps
 	cp gnome-gps $(EXECDIR)
-	cp gnome-gps.desktop $(SHARE)applications
+	desktop-file-install gnome-gps.desktop
+	update-desktop-database	# Not sure if this is needed.
 	strip $(EXECDIR)gnome-gps
 
 uninstall:

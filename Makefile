@@ -8,9 +8,9 @@ gnome-gps:
 debug:
 	cd src && make debug
 
-.PHONY: astyle
-astyle:
-	cd src && make astyle
+.PHONY: validate
+validate:
+	cd src && make validate
 
 .PHONY: clean
 clean:
