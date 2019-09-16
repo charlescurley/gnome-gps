@@ -43,8 +43,9 @@ except on debian squeeze, where you may need:
 
 apt -t squeeze-backports install gcc make libgtk2.0-dev
 
-There is a make target "astyle". This is set up to run astyle so you
+There is a make target "validate". This is set up to run astyle so you
 can have a suitable style in your contributions (hint, hint...). You
-will need astyle if you don't already have it.
+will need astyle if you don't already have it. It will also validate
+the desktop file, which requires the package desktop-file-utils.
 
-apt install astyle
+apt install astyle desktop-file-utils
