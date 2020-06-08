@@ -41,6 +41,13 @@
 #define VERSIONSET
 #endif  /* 8.0 */
 
+/* Skipping 9.0 and 9.1. See /usr/include/gps.h or /usr/local/include/gps.h. */
+#if ( GPSD_API_MAJOR_VERSION == 10 && GPSD_API_MINOR_VERSION == 0 )
+#warning Setting up for version 10.0
+#define VERSION1000
+#define VERSIONSET
+#endif  /* 10.0 */
+
 #ifndef VERSIONSET
 #error Unknown gps API protocol version; see gps.h for the current value of GPSD_API_MAJOR_VERSION
 #endif  /* Unknown */
