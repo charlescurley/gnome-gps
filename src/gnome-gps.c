@@ -404,6 +404,7 @@ void formatLong (double longitude) {
     gtk_entry_set_text(entries[LONG], longString );
 }
 
+#if ( GPSD_API_MAJOR_VERSION < 10 )
 char *gnome_gps_unix_to_iso8601(timestamp_t fixtime,
                                 char isotime[], size_t len)
 /* Unix time to ISO8601. Filched from gpsd's gpsutils.c. example:
@@ -427,7 +428,7 @@ char *gnome_gps_unix_to_iso8601(timestamp_t fixtime,
      */
     (void)snprintf(fractstr, sizeof(fractstr), "%.3f", fractional);
     /* add fractional part, ignore leading 0; "0.2" -> ".2" */
-    /*@i2@*/(void)snprintf(isotime, len, "%s%s",timestr, strchr(fractstr,'.'));
+    /*@i2@*/(void)snprintf(isotime, len, "%s%s", timestr, strchr(fractstr,'.'));
     return isotime;
 }
 
@@ -445,6 +446,58 @@ void formatTime (double time) {
     }
     gtk_entry_set_text(entries[TIME], timeString );
 }
+
+#else  /* #if GPSD_API_MAJOR_VERSION < 10 */
+char *gnome_gps_timespec_to_iso8601(timespec_t fixtime, char isotime[], size_t len)
+/* Filched from gpsd's gpsutils.c. */
+/* timespec UTC time to ISO8601, no timezone adjustment. example:
+ * 2007-12-11T23:38:51.033Z */
+{
+    struct tm when;
+    char timestr[30];
+    long fracsec;
+
+    if (0 > fixtime.tv_sec) {
+        // Allow 0 for testing of 1970-01-01T00:00:00.000Z
+        return strncpy(isotime, "NaN", len);
+    }
+    if (999499999 < fixtime.tv_nsec) {
+        /* round up */
+        fixtime.tv_sec++;
+        fixtime.tv_nsec = 0;
+    }
+
+    (void)localtime_r(&fixtime.tv_sec, &when);
+
+    /*
+     * Do not mess casually with the number of decimal digits in the
+     * format!  Most GPSes report over serial links at 0.01s or 0.001s
+     * precision.  Round to 0.001s
+     */
+    fracsec = (fixtime.tv_nsec + 500000) / 1000000;
+
+    (void)strftime(timestr, sizeof(timestr), "%Y-%m-%dT%H:%M:%S", &when);
+    (void)snprintf(isotime, len, "%s.%03ld", timestr, fracsec);
+
+    return isotime;
+}
+
+void formatTime (timespec_t time) {
+    if (time.tv_sec > 0) {
+        if (gmt == true) {
+            (void) timespec_to_iso8601(time, timeString,
+                                       (int) sizeof(timeString));
+        } else {
+            (void) gnome_gps_timespec_to_iso8601(time, timeString,
+                                                 (int) sizeof(timeString));
+        }
+    } else {
+        (void) strcpy(timeString,"n/a");
+    }
+    gtk_entry_set_text(entries[TIME], timeString );
+}
+
+#endif  /* #if GPSD_API_MAJOR_VERSION < 10 */
 
 void formatAltitude (double altitude) {
     if (units != METRIC) {
@@ -853,7 +906,11 @@ void showData (void) {
 
     /* Fill in receiver type. Detect missing gps receiver. */
     if (gpsdata.set & (DEVICE_SET)) {
+#if ( GPSD_API_MAJOR_VERSION < 10 )
         if (gpsdata.dev.activated < 1.0) {
+#else
+        if (gpsdata.dev.activated.tv_sec < 0) {
+#endif
             sendWatch ();
             gpsLost = true;
 
@@ -863,10 +920,18 @@ void showData (void) {
 
             if (verbose) {
                 (void) fprintf (stderr, "gps lost.\n");
+#if ( GPSD_API_MAJOR_VERSION < 10 )
                 (void) snprintf(tmpBuff, sizeof(tmpBuff),
                                 "driver = %s: subtype = %s: activated = %f",
                                 gpsdata.dev.driver, gpsdata.dev.subtype,
                                 gpsdata.dev.activated);
+#else
+                (void) snprintf(tmpBuff, sizeof(tmpBuff),
+                                "driver = %s: subtype = %s: activated = %lld",
+                                gpsdata.dev.driver, gpsdata.dev.subtype,
+                                (long long)gpsdata.dev.activated.tv_sec);
+#endif
+                (void) printf ("gps found.\n");
             }
             (void) snprintf (titleBuff, STRINGBUFFSIZE,
                              "%s: a simple GTK+ GPS monitor", baseName);
@@ -889,10 +954,17 @@ void showData (void) {
             sendWatch ();
             gtk_progress_bar_set_text (progress, tmpBuff);
             if (verbose) {
+#if ( GPSD_API_MAJOR_VERSION < 10 )
                 (void) snprintf(tmpBuff, sizeof(tmpBuff),
                                 "driver = %s: subtype = %s: activated = %f",
                                 gpsdata.dev.driver, gpsdata.dev.subtype,
                                 gpsdata.dev.activated);
+#else
+                (void) snprintf(tmpBuff, sizeof(tmpBuff),
+                                "driver = %s: subtype = %s: activated = %lld",
+                                gpsdata.dev.driver, gpsdata.dev.subtype,
+                                (long long)gpsdata.dev.activated.tv_sec);
+#endif
                 (void) printf ("gps found.\n");
             }
         }
@@ -934,7 +1006,7 @@ void showData (void) {
     }
 
     if (gpsdata.set & VERSION_SET && (verbose != false)) {
-        (void) printf ("set 0x%08x, GPSD version: %s Rev: %s, Protocol %d.%d\n",
+        (void) printf ("set 0x%08x, GPSD version: %s Rev: %s, Protocol version %d.%d\n",
                        (unsigned int) gpsdata.set,
                        gpsdata.version.release,
                        gpsdata.version.rev,
@@ -1001,7 +1073,11 @@ void showData (void) {
     }
 
     if (gpsdata.set & STATUS_SET) {
+#if ( GPSD_API_MAJOR_VERSION < 10 )
         switch (gpsdata.status) {
+#else
+        switch (gpsdata.fix.status) {
+#endif
         case STATUS_NO_FIX:
             (void) strcpy (fixBuff, "No fix");
             setColor (&NoFixColor);
@@ -1075,8 +1151,13 @@ void showData (void) {
             break;
 
         default:
+#if ( GPSD_API_MAJOR_VERSION < 10 )
             (void) fprintf (stderr, "Catastrophic error: Invalid status %d.\n",
                             gpsdata.status);
+#else
+            (void) fprintf (stderr, "Catastrophic error: Invalid status %d.\n",
+                            gpsdata.fix.status);
+#endif
             setColor (&NoFixColor);
             return;
         }

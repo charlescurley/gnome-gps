@@ -22,7 +22,11 @@ void formatTrack (double track);
 void formatAngle (double theAngle, gchar *buffer);
 void formatLat (double latitude);
 void formatLong (double longitude);
+#if ( GPSD_API_MAJOR_VERSION < 10 )
 void formatTime (double time);
+#else
+void formatTime (timespec_t time);
+#endif
 void formatAltitude (double altitude);
 void formatSpeed (double speed);
 
