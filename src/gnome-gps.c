@@ -1121,14 +1121,16 @@ void showData (void) {
                     break;
 
                 case MODE_3D:
-                    if ((gpsdata.set & (LATLON_SET|ALTITUDE_SET))) {
+                    if ((gpsdata.set & (LATLON_SET))) {
                         formatLat (gpsdata.fix.latitude);
                         formatLong (gpsdata.fix.longitude);
+                    }
 
-                        /* Only if we have a fix are the details of it useful. Altitude is
-                           only meaningful on a 3D fix. */
+                    /* Only if we have a fix are the details of it
+                       useful. Altitude is only meaningful on a 3D
+                       fix. */
+                    if ((gpsdata.set & (ALTITUDE_SET))) {
                         formatAltitude (gpsdata.fix.altitude);
-                        setColor (&ThreeDFixColor);
                         if (verbose) {
                             (void) snprintf (fixBuff, STRINGBUFFSIZE,
                                              "3D %sFix, la %f, lo %f, %f",
@@ -1137,8 +1139,9 @@ void showData (void) {
                                              gpsdata.fix.longitude,
                                              gpsdata.fix.altitude);
                         }
-
                     }
+
+                    setColor (&ThreeDFixColor);
                     break;
 
                 default:
