@@ -4,7 +4,7 @@
  * itself, i.e under the BSD License. See the file COPYING in the
  * distribution. This program comes with ABSOLUTELY NO WARRANTY. */
 
-char *versionString = "1.4";
+char *versionString = "1.5";
 
 gchar *copyrightString = "Copyright © 2009 to the date of the most recent modification Charles Curley\n";
 
