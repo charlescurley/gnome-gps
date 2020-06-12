@@ -41,7 +41,13 @@
 #define VERSIONSET
 #endif  /* 8.0 */
 
-/* Skipping 9.0 and 9.1. See /usr/include/gps.h or /usr/local/include/gps.h. */
+#if ( GPSD_API_MAJOR_VERSION == 9 && GPSD_API_MINOR_VERSION == 0 )
+#warning Setting up for version 9.0
+#define VERSION0900
+#define VERSIONSET
+#endif  /* 9.0 */
+
+/* Skipping 9.1. See /usr/include/gps.h or /usr/local/include/gps.h. */
 #if ( GPSD_API_MAJOR_VERSION == 10 && GPSD_API_MINOR_VERSION == 0 )
 #warning Setting up for version 10.0
 #define VERSION1000
@@ -404,7 +410,7 @@ void formatLong (double longitude) {
     gtk_entry_set_text(entries[LONG], longString );
 }
 
-#if ( GPSD_API_MAJOR_VERSION < 10 )
+#if ( GPSD_API_MAJOR_VERSION < 9 )
 char *gnome_gps_unix_to_iso8601(timestamp_t fixtime,
                                 char isotime[], size_t len)
 /* Unix time to ISO8601. Filched from gpsd's gpsutils.c. example:
@@ -432,22 +438,7 @@ char *gnome_gps_unix_to_iso8601(timestamp_t fixtime,
     return isotime;
 }
 
-void formatTime (double time) {
-    if (isnan(time)==0) {
-        if (gmt == true) {
-            (void) unix_to_iso8601(time, timeString,
-                                   (int) sizeof(timeString));
-        } else {
-            (void) gnome_gps_unix_to_iso8601(time, timeString,
-                                             (int) sizeof(timeString));
-        }
-    } else {
-        (void) strcpy(timeString,"n/a");
-    }
-    gtk_entry_set_text(entries[TIME], timeString );
-}
-
-#else  /* #if GPSD_API_MAJOR_VERSION < 10 */
+#else  /* #if GPSD_API_MAJOR_VERSION < 9 */
 char *gnome_gps_timespec_to_iso8601(timespec_t fixtime, char isotime[], size_t len)
 /* Filched from gpsd's gpsutils.c. */
 /* timespec UTC time to ISO8601, no timezone adjustment. example:
@@ -482,6 +473,27 @@ char *gnome_gps_timespec_to_iso8601(timespec_t fixtime, char isotime[], size_t l
     return isotime;
 }
 
+#endif  /* #if GPSD_API_MAJOR_VERSION < 9 */
+
+#if ( GPSD_API_MAJOR_VERSION < 9 )
+
+void formatTime (double time) {
+    if (isnan(time)==0) {
+        if (gmt == true) {
+            (void) unix_to_iso8601(time, timeString,
+                                   (int) sizeof(timeString));
+        } else {
+            (void) gnome_gps_unix_to_iso8601(time, timeString,
+                                             (int) sizeof(timeString));
+        }
+    } else {
+        (void) strcpy(timeString,"n/a");
+    }
+    gtk_entry_set_text(entries[TIME], timeString );
+}
+
+#else  /* #if GPSD_API_MAJOR_VERSION < 9 */
+
 void formatTime (timespec_t time) {
     if (time.tv_sec > 0) {
         if (gmt == true) {
@@ -497,7 +509,10 @@ void formatTime (timespec_t time) {
     gtk_entry_set_text(entries[TIME], timeString );
 }
 
-#endif  /* #if GPSD_API_MAJOR_VERSION < 10 */
+#endif  /* #if GPSD_API_MAJOR_VERSION < 9 */
+
+
+
 
 void formatAltitude (double altitude) {
     if (units != METRIC) {
@@ -906,7 +921,7 @@ void showData (void) {
 
     /* Fill in receiver type. Detect missing gps receiver. */
     if (gpsdata.set & (DEVICE_SET)) {
-#if ( GPSD_API_MAJOR_VERSION < 10 )
+#if ( GPSD_API_MAJOR_VERSION < 9 )
         if (gpsdata.dev.activated < 1.0) {
 #else
         if (gpsdata.dev.activated.tv_sec < 0) {
@@ -920,7 +935,7 @@ void showData (void) {
 
             if (verbose) {
                 (void) fprintf (stderr, "gps lost.\n");
-#if ( GPSD_API_MAJOR_VERSION < 10 )
+#if ( GPSD_API_MAJOR_VERSION < 9 )
                 (void) snprintf(tmpBuff, sizeof(tmpBuff),
                                 "driver = %s: subtype = %s: activated = %f",
                                 gpsdata.dev.driver, gpsdata.dev.subtype,
@@ -954,7 +969,7 @@ void showData (void) {
             sendWatch ();
             gtk_progress_bar_set_text (progress, tmpBuff);
             if (verbose) {
-#if ( GPSD_API_MAJOR_VERSION < 10 )
+#if ( GPSD_API_MAJOR_VERSION < 9 )
                 (void) snprintf(tmpBuff, sizeof(tmpBuff),
                                 "driver = %s: subtype = %s: activated = %f",
                                 gpsdata.dev.driver, gpsdata.dev.subtype,
