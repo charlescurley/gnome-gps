@@ -511,9 +511,6 @@ void formatTime (timespec_t time) {
 
 #endif  /* #if GPSD_API_MAJOR_VERSION < 9 */
 
-
-
-
 void formatAltitude (double altitude) {
     if (units != METRIC) {
         altitude *= METERS_TO_FEET;
@@ -923,9 +920,9 @@ void showData (void) {
     if (gpsdata.set & (DEVICE_SET)) {
 #if ( GPSD_API_MAJOR_VERSION < 9 )
         if (gpsdata.dev.activated < 1.0) {
-#else
+#else  /* #if GPSD_API_MAJOR_VERSION < 9 */
         if (gpsdata.dev.activated.tv_sec < 0) {
-#endif
+#endif  /* #if GPSD_API_MAJOR_VERSION < 9 */
             sendWatch ();
             gpsLost = true;
 
@@ -940,12 +937,12 @@ void showData (void) {
                                 "driver = %s: subtype = %s: activated = %f",
                                 gpsdata.dev.driver, gpsdata.dev.subtype,
                                 gpsdata.dev.activated);
-#else
+#else  /* #if GPSD_API_MAJOR_VERSION < 9 */
                 (void) snprintf(tmpBuff, sizeof(tmpBuff),
                                 "driver = %s: subtype = %s: activated = %lld",
                                 gpsdata.dev.driver, gpsdata.dev.subtype,
                                 (long long)gpsdata.dev.activated.tv_sec);
-#endif
+#endif  /* #if GPSD_API_MAJOR_VERSION < 9 */
                 (void) printf ("gps found.\n");
             }
             (void) snprintf (titleBuff, STRINGBUFFSIZE,
@@ -974,12 +971,12 @@ void showData (void) {
                                 "driver = %s: subtype = %s: activated = %f",
                                 gpsdata.dev.driver, gpsdata.dev.subtype,
                                 gpsdata.dev.activated);
-#else
+#else  /* #if GPSD_API_MAJOR_VERSION < 9 */
                 (void) snprintf(tmpBuff, sizeof(tmpBuff),
                                 "driver = %s: subtype = %s: activated = %lld",
                                 gpsdata.dev.driver, gpsdata.dev.subtype,
                                 (long long)gpsdata.dev.activated.tv_sec);
-#endif
+#endif  /* #if GPSD_API_MAJOR_VERSION < 9 */
                 (void) printf ("gps found.\n");
             }
         }
