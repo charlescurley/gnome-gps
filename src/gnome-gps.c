@@ -1230,6 +1230,7 @@ gint gpsPoll (gpointer data) {
         return (true);
     }
 
+    /*  timeout in microseconds. .2 seconds. */
     if (gps_waiting (&gpsdata, 200000) == true) {
         errno = 0;
 #if GPSD_API_MAJOR_VERSION >= 7 /* API change. */
