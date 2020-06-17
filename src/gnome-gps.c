@@ -1232,18 +1232,16 @@ gint gpsPoll (gpointer data) {
 
     /*  timeout in microseconds. .2 seconds. */
     if (gps_waiting (&gpsdata, 200000) == true) {
-        errno = 0;
+        int ret;
+
 #if GPSD_API_MAJOR_VERSION >= 7 /* API change. */
-        if (gps_read (&gpsdata, gpsdMessage, gpsdMessageLen) == -1) {
+        ret = gps_read (&gpsdata, gpsdMessage, gpsdMessageLen);
 #else
-        if (gps_read (&gpsdata) == -1) {
+        ret = gps_read (&gpsdata);
 #endif
-            if (errno == 0) {
-                gtk_progress_bar_set_text (progress, "Lost contact with gpsd.");
-            } else {
-                gtk_progress_bar_set_text (progress, "Something went wrong.");
-            }
-            gtk_progress_bar_set_fraction (progress, 0.0);
+        if (ret <= 1) {
+            fprintf (stderr, "Gnome-gps: ret is %d. ", ret);
+            perror (NULL);
             resynch ();
         } else {
             showData ();
