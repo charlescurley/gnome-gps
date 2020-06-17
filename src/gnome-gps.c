@@ -18,38 +18,38 @@
  * bomb out. */
 
 #if ( GPSD_API_MAJOR_VERSION == 5 && GPSD_API_MINOR_VERSION == 1 )
-#warning Setting up for version 5.1
+#warning Setting up for API version 5.1
 #define VERSION501
 #define VERSIONSET
 #endif  /* 5.1 */
 
 #if ( GPSD_API_MAJOR_VERSION == 6 && GPSD_API_MINOR_VERSION == 1 )
-#warning Setting up for version 6.1
+#warning Setting up for API version 6.1
 #define VERSION601
 #define VERSIONSET
 #endif  /* 6.1 */
 
 #if ( GPSD_API_MAJOR_VERSION == 7 && GPSD_API_MINOR_VERSION == 0 )
-#warning Setting up for version 7.0
+#warning Setting up for API version 7.0
 #define VERSION700
 #define VERSIONSET
 #endif  /* 7.0 */
 
 #if ( GPSD_API_MAJOR_VERSION == 8 && GPSD_API_MINOR_VERSION == 0 )
-#warning Setting up for version 8.0
+#warning Setting up for API version 8.0
 #define VERSION800
 #define VERSIONSET
 #endif  /* 8.0 */
 
 #if ( GPSD_API_MAJOR_VERSION == 9 && GPSD_API_MINOR_VERSION == 0 )
-#warning Setting up for version 9.0
+#warning Setting up for API version 9.0
 #define VERSION0900
 #define VERSIONSET
 #endif  /* 9.0 */
 
 /* Skipping 9.1. See /usr/include/gps.h or /usr/local/include/gps.h. */
 #if ( GPSD_API_MAJOR_VERSION == 10 && GPSD_API_MINOR_VERSION == 0 )
-#warning Setting up for version 10.0
+#warning Setting up for API version 10.0
 #define VERSION1000
 #define VERSIONSET
 #endif  /* 10.0 */
