@@ -939,8 +939,9 @@ void showData (void) {
                                 gpsdata.dev.activated);
 #else  /* #if GPSD_API_MAJOR_VERSION < 9 */
                 (void) snprintf(tmpBuff, sizeof(tmpBuff),
-                                "driver = %s: subtype = %s: activated = %lld",
+                                "driver = %s: subtype = %s%s: activated = %lld",
                                 gpsdata.dev.driver, gpsdata.dev.subtype,
+                                gpsdata.dev.subtype1,
                                 (long long)gpsdata.dev.activated.tv_sec);
 #endif  /* #if GPSD_API_MAJOR_VERSION < 9 */
                 (void) printf ("gps found.\n");
@@ -964,7 +965,7 @@ void showData (void) {
                 (void) snprintf (titleBuff, STRINGBUFFSIZE,
                                  "%s: %s; %s %s",
                                  baseName, gpsdata.dev.driver,
-                                 gpsdata.dev.subtype, gpsdata.dev.subtype);
+                                 gpsdata.dev.subtype, gpsdata.dev.subtype1);
 #endif  /* #if GPSD_API_MAJOR_VERSION < 9 */
                 gtk_window_set_title (GTK_WINDOW (window), titleBuff);
             } else {
@@ -980,8 +981,9 @@ void showData (void) {
                                 gpsdata.dev.activated);
 #else  /* #if GPSD_API_MAJOR_VERSION < 9 */
                 (void) snprintf(tmpBuff, sizeof(tmpBuff),
-                                "driver = %s: subtype = %s: activated = %lld",
+                                "driver = %s: subtype = %s%s: activated = %lld",
                                 gpsdata.dev.driver, gpsdata.dev.subtype,
+                                gpsdata.dev.subtype1,
                                 (long long)gpsdata.dev.activated.tv_sec);
 #endif  /* #if GPSD_API_MAJOR_VERSION < 9 */
                 (void) printf ("gps found.\n");
@@ -1008,10 +1010,18 @@ void showData (void) {
             int i;
 
             for (i = 0 ; i < gpsdata.devices.ndevices; i++ ) {
+#if ( GPSD_API_MAJOR_VERSION < 9 )
                 (void) printf("Device no. %i: driver = %s: subtype (if any) = %s\n",
                               i,
                               gpsdata.devices.list[0].driver,
                               gpsdata.devices.list[0].subtype);
+#else  /* #if GPSD_API_MAJOR_VERSION < 9 */
+                (void) printf("Device no. %i: driver = %s: subtype (if any) = %s%s\n",
+                              i,
+                              gpsdata.devices.list[0].driver,
+                              gpsdata.devices.list[0].subtype,
+                              gpsdata.devices.list[0].subtype1);
+#endif  /* #if GPSD_API_MAJOR_VERSION < 9 */
             }
         } else {
             (void) printf ("set 0x%08x, no devices reported.\n",
