@@ -956,9 +956,16 @@ void showData (void) {
              * of 0 length. OK, I'm paranoid, deal with it. */
             if (strlen (gpsdata.dev.driver)) {
                 (void) snprintf(tmpBuff, sizeof(tmpBuff), "%s GPS Found!", gpsdata.dev.driver);
+#if ( GPSD_API_MAJOR_VERSION < 9 )
                 (void) snprintf (titleBuff, STRINGBUFFSIZE,
                                  "%s: %s; %s",
                                  baseName, gpsdata.dev.driver, gpsdata.dev.subtype);
+#else  /* #if GPSD_API_MAJOR_VERSION < 9 */
+                (void) snprintf (titleBuff, STRINGBUFFSIZE,
+                                 "%s: %s; %s %s",
+                                 baseName, gpsdata.dev.driver,
+                                 gpsdata.dev.subtype, gpsdata.dev.subtype);
+#endif  /* #if GPSD_API_MAJOR_VERSION < 9 */
                 gtk_window_set_title (GTK_WINDOW (window), titleBuff);
             } else {
                 (void) strcpy (tmpBuff, "GPS Found!");
