@@ -15,6 +15,7 @@ PRODUCTFLAGS = -Wall -c -Wno-deprecated-declarations -Wno-format-truncation $(CF
 PRODUCTOBJS = gnome-gps.o icon.image.o
 
 SHARE=/usr/share/
+SHAREICONS=/usr/local/share/
 EXECDIR=/usr/local/bin/
 
 gnome-gps: $(PRODUCTOBJS) gnome-gps.h icon.image.h
@@ -49,14 +50,14 @@ archive:
 	cd ../../ && sha1sum gnome-gps.`date +%Y.%m.%d`.tar.bz2 > gnome-gps.`date +%Y.%m.%d`.sha1sum
 
 install:
-	mkdir -p $(SHARE)gnome-gps
-	cp gnome-gps.logo.png $(SHARE)gnome-gps
+	mkdir -p $(SHAREICONS)gnome-gps/icons/
+	cp gnome-gps.logo.png $(SHAREICONS)gnome-gps/icons/
 	cp gnome-gps $(EXECDIR)
 	desktop-file-install gnome-gps.desktop
-	update-desktop-database	# Not sure if this is needed.
+	update-desktop-database
 	strip $(EXECDIR)gnome-gps
 
 uninstall:
-	rm -r $(SHARE)gnome-gps
+	rm -r $(SHAREICONS)gnome-gps
 	rm $(EXECDIR)gnome-gps
 	rm $(SHARE)applications/gnome-gps.desktop
