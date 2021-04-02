@@ -14,9 +14,10 @@ DEBUGOBJS = gnome-gps.do icon.image.do
 PRODUCTFLAGS = -Wall -c -Wno-deprecated-declarations -Wno-format-truncation $(CFLAGS)
 PRODUCTOBJS = gnome-gps.o icon.image.o
 
-SHARE=/usr/share/
-SHAREICONS=/usr/local/share/
+# Anyone got a better place to put this?
+SHAREICONS=/usr/local/share/icons/hicolor/48x48/apps/
 EXECDIR=/usr/local/bin/
+SHARE=/usr/share/
 
 gnome-gps: $(PRODUCTOBJS) gnome-gps.h icon.image.h
 	gcc -Wall -O2 gnome-gps.o icon.image.o -o gnome-gps $(LINPUTS)
@@ -50,14 +51,13 @@ archive:
 	cd ../../ && sha1sum gnome-gps.`date +%Y.%m.%d`.tar.bz2 > gnome-gps.`date +%Y.%m.%d`.sha1sum
 
 install:
-	mkdir -p $(SHAREICONS)gnome-gps/icons/
-	cp gnome-gps.logo.png $(SHAREICONS)gnome-gps/icons/
+	cp gnome-gps.icon02.png $(SHAREICONS)gnome-gps.png
 	cp gnome-gps $(EXECDIR)
 	desktop-file-install gnome-gps.desktop
 	update-desktop-database
 	strip $(EXECDIR)gnome-gps
 
 uninstall:
-	rm -r $(SHAREICONS)gnome-gps
+	rm $(SHAREICONS)gnome-gps.png
 	rm $(EXECDIR)gnome-gps
 	rm $(SHARE)applications/gnome-gps.desktop
