@@ -51,6 +51,7 @@ archive:
 	cd ../../ && sha1sum gnome-gps.`date +%Y.%m.%d`.tar.bz2 > gnome-gps.`date +%Y.%m.%d`.sha1sum
 
 install:
+	mkdir -p $(SHAREICONS)
 	cp gnome-gps.icon02.png $(SHAREICONS)gnome-gps.png
 	cp gnome-gps $(EXECDIR)
 	desktop-file-install gnome-gps.desktop
