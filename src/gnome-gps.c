@@ -54,12 +54,19 @@
 #define VERSIONSET
 #endif  /* 10.0 */
 
-/* This is for the version on debian 10, Bullseye, gpsd version 3.22, libgps version 28. */
+/* This is for the version on debian 10, Buster, gpsd version 3.22, libgps version 28. */
 #if ( GPSD_API_MAJOR_VERSION == 11 && GPSD_API_MINOR_VERSION == 0 )
 #warning Setting up for API version 11.0
 #define VERSION1100
 #define VERSIONSET
 #endif  /* 11.0 */
+
+/* This is for the version on debian 10, Buster, gpsd version 3.23.1~rc1, libgps version 29. */
+#if ( GPSD_API_MAJOR_VERSION == 12 && GPSD_API_MINOR_VERSION == 0 )
+#warning Setting up for API version 12.0
+#define VERSION1200
+#define VERSIONSET
+#endif  /* 12.0 */
 
 #ifndef VERSIONSET
 #error Unknown gps API protocol version; see gps.h for the current value of GPSD_API_MAJOR_VERSION
@@ -87,7 +94,14 @@
 
 #if GPSD_API_MAJOR_VERSION >= 7
 /* from <gps_json.h> */
-#define GPS_JSON_RESPONSE_MAX   4096
+/* #define GPS_JSON_RESPONSE_MAX   4096 */
+#if ( GPSD_API_MAJOR_VERSION < 12 )
+/* I don't know when upstream moved gps_json.h. Anyway, I hope Gary
+ * Miller does something about this mess. */
+#include "/home/charles/versioned/gpsd/gps_json.h" /* Tacky! */
+#else
+#include "/home/charles/versioned/gpsd/include/gps_json.h" /* Tacky! */
+#endif
 
 bool showMessage = false;
 char gpsdMessage[GPS_JSON_RESPONSE_MAX];
@@ -903,7 +917,7 @@ static GtkWidget *get_menubar_menu( GtkWidget  *window ) {
 /* Our display function. Nested case statements. */
 void showData (void) {
     char tmpBuff[STRINGBUFFSIZE];   /* generic temporary holding. */
-    char *fixStatus = "DGPS ";  /* Default, if we even use it. */
+    char *fixStatus = "DGPS ";      /* Default, if we even use it. */
 
 #if GPSD_API_MAJOR_VERSION >= 7
     if (showMessage == true) {
@@ -1114,18 +1128,35 @@ void showData (void) {
 #else
         switch (gpsdata.fix.status) {
 #endif
+#if ( GPSD_API_MAJOR_VERSION < 12 )
         case STATUS_NO_FIX:
             (void) strcpy (fixBuff, "No fix");
+#else
+        case STATUS_UNK:
+            (void) strcpy (fixBuff, "Status unknown");
+#endif
             setColor (&NoFixColor);
             break;
 
+#if ( GPSD_API_MAJOR_VERSION < 12 )
         case STATUS_FIX:
             (void) strcpy (fixBuff, "No fix");
             fixStatus = "";
-
-        /* This ifdef was obvioulsy incorrect! */
-        /* #ifdef VERSION501 */
-        case STATUS_DGPS_FIX:
+#else
+        case STATUS_GPS: //      1
+        case STATUS_DGPS: //     2       // with DGPS
+        case STATUS_RTK_FIX: //  3       // with RTK Fixed
+        case STATUS_RTK_FLT: //  4       // with RTK Float
+        case STATUS_DR: //       5       // with dead reckoning
+        case STATUS_GNSSDR: //   6       // with GNSS + dead reckoning
+        case STATUS_TIME: //     7       // time only (surveyed in, manual)
+// Note that STATUS_SIM and MODE_NO_FIX can go together.
+        case STATUS_SIM: //      8       // simulated
+/* yes, Precise Positioning Service (PPS)
+ * Not to be confused with Pulse per Second (PPS)
+ * PPS is the encrypted military P(Y)-code */
+        case STATUS_PPS_FIX: //  9
+#endif
             /* #endif */
 
             if (gpsdata.set & MODE_SET) {
@@ -1147,8 +1178,35 @@ void showData (void) {
                         setColor (&TwoDFixColor);
 
                         if (verbose) {
+#if ( GPSD_API_MAJOR_VERSION >= 12 )
+                            switch (gpsdata.fix.status) {
+
+                            case STATUS_GPS: //      1
+                                fixStatus = "GPS";
+                            case STATUS_DGPS: //     2       // with DGPS
+                                fixStatus = "DGPS";
+                            case STATUS_RTK_FIX: //  3       // with RTK Fixed
+                                fixStatus = "RTK fixed";
+                            case STATUS_RTK_FLT: //  4       // with RTK Float
+                                fixStatus = "RTK float";
+                            case STATUS_DR: //       5       // with dead reckoning
+                                fixStatus = "Dead Reckoning";
+                            case STATUS_GNSSDR: //   6       // with GNSS + dead reckoning
+                                fixStatus = "GNSS and dead reckoning";
+                            case STATUS_TIME: //     7       // time only (surveyed in, manual)
+                                fixStatus = "Time only";
+// Note that STATUS_SIM and MODE_NO_FIX can go together.
+                            case STATUS_SIM: //      8       // simulated
+                                fixStatus = "Simulated";
+/* yes, Precise Positioning Service (PPS)
+ * Not to be confused with Pulse per Second (PPS)
+ * PPS is the encrypted military P(Y)-code */
+                            case STATUS_PPS_FIX: //  9
+                                fixStatus = "PPS";
+                            }
+#endif
                             (void) snprintf (fixBuff, STRINGBUFFSIZE,
-                                             "2D %sFix, la %f, lo %f",
+                                             "2D %s Fix, la %f, lo %f",
                                              fixStatus,
                                              gpsdata.fix.latitude,
                                              gpsdata.fix.longitude);
@@ -1168,8 +1226,35 @@ void showData (void) {
                     if ((gpsdata.set & (ALTITUDE_SET))) {
                         formatAltitude (gpsdata.fix.altitude);
                         if (verbose) {
+
+#if ( GPSD_API_MAJOR_VERSION >= 12 )
+                            switch (gpsdata.fix.status) {
+                            case STATUS_GPS: //      1
+                                fixStatus = "GPS";
+                            case STATUS_DGPS: //     2       // with DGPS
+                                fixStatus = "DGPS";
+                            case STATUS_RTK_FIX: //  3       // with RTK Fixed
+                                fixStatus = "RTK fixed";
+                            case STATUS_RTK_FLT: //  4       // with RTK Float
+                                fixStatus = "RTK float";
+                            case STATUS_DR: //       5       // with dead reckoning
+                                fixStatus = "Dead Reckoning";
+                            case STATUS_GNSSDR: //   6       // with GNSS + dead reckoning
+                                fixStatus = "GNSS and dead reckoning";
+                            case STATUS_TIME: //     7       // time only (surveyed in, manual)
+                                fixStatus = "Time only";
+// Note that STATUS_SIM and MODE_NO_FIX can go together.
+                            case STATUS_SIM: //      8       // simulated
+                                fixStatus = "Simulated";
+/* yes, Precise Positioning Service (PPS)
+ * Not to be confused with Pulse per Second (PPS)
+ * PPS is the encrypted military P(Y)-code */
+                            case STATUS_PPS_FIX: //  9
+                                fixStatus = "PPS";
+                            }
+#endif
                             (void) snprintf (fixBuff, STRINGBUFFSIZE,
-                                             "3D %sFix, la %f, lo %f, %f",
+                                             "3D %s Fix, la %f, lo %f, %f",
                                              fixStatus,
                                              gpsdata.fix.latitude,
                                              gpsdata.fix.longitude,
