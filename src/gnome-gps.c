@@ -186,6 +186,13 @@ char returnString[STRINGBUFFSIZE];
 const gchar *baseName;          /* So we can print out only the base
                                    name in the help. */
 
+/* A string array to make the status more human friendly. Indexed by
+ * the various status in gpsd.h. */
+static char statusString[][19] = {"no", "", "DGPS", "RTK fixed",
+                                  "RTK float", "Dead reckoning",
+                                  "GNSS dead reckoning", "Time only",
+                                  "Simulated", "PPS"};
+
 /* SIZE must be last as we use it to size the array and in related
  * code. */
 enum entryNames { LAT, LONG, ALT, SPEED, TRACK,
@@ -917,7 +924,6 @@ static GtkWidget *get_menubar_menu( GtkWidget  *window ) {
 /* Our display function. Nested case statements. */
 void showData (void) {
     char tmpBuff[STRINGBUFFSIZE];   /* generic temporary holding. */
-    char *fixStatus = "DGPS ";      /* Default, if we even use it. */
 
 #if GPSD_API_MAJOR_VERSION >= 7
     if (showMessage == true) {
@@ -1124,10 +1130,11 @@ void showData (void) {
 
     if (gpsdata.set & STATUS_SET) {
 #if ( GPSD_API_MAJOR_VERSION < 10 )
-        switch (gpsdata.status) {
+        int status = (gpsdata.status);
 #else
-        switch (gpsdata.fix.status) {
+        int status = (gpsdata.fix.status);
 #endif
+        switch (status) {
 #if ( GPSD_API_MAJOR_VERSION < 12 )
         case STATUS_NO_FIX:
             (void) strcpy (fixBuff, "No fix");
@@ -1141,7 +1148,6 @@ void showData (void) {
 #if ( GPSD_API_MAJOR_VERSION < 12 )
         case STATUS_FIX:
             (void) strcpy (fixBuff, "No fix");
-            fixStatus = "";
 #else
         case STATUS_GPS: //      1
         case STATUS_DGPS: //     2       // with DGPS
@@ -1156,6 +1162,7 @@ void showData (void) {
  * Not to be confused with Pulse per Second (PPS)
  * PPS is the encrypted military P(Y)-code */
         case STATUS_PPS_FIX: //  9
+            (void) strcpy (fixBuff, "No fix");
 #endif
             /* #endif */
 
@@ -1178,36 +1185,9 @@ void showData (void) {
                         setColor (&TwoDFixColor);
 
                         if (verbose) {
-#if ( GPSD_API_MAJOR_VERSION >= 12 )
-                            switch (gpsdata.fix.status) {
-
-                            case STATUS_GPS: //      1
-                                fixStatus = "GPS";
-                            case STATUS_DGPS: //     2       // with DGPS
-                                fixStatus = "DGPS";
-                            case STATUS_RTK_FIX: //  3       // with RTK Fixed
-                                fixStatus = "RTK fixed";
-                            case STATUS_RTK_FLT: //  4       // with RTK Float
-                                fixStatus = "RTK float";
-                            case STATUS_DR: //       5       // with dead reckoning
-                                fixStatus = "Dead Reckoning";
-                            case STATUS_GNSSDR: //   6       // with GNSS + dead reckoning
-                                fixStatus = "GNSS and dead reckoning";
-                            case STATUS_TIME: //     7       // time only (surveyed in, manual)
-                                fixStatus = "Time only";
-// Note that STATUS_SIM and MODE_NO_FIX can go together.
-                            case STATUS_SIM: //      8       // simulated
-                                fixStatus = "Simulated";
-/* yes, Precise Positioning Service (PPS)
- * Not to be confused with Pulse per Second (PPS)
- * PPS is the encrypted military P(Y)-code */
-                            case STATUS_PPS_FIX: //  9
-                                fixStatus = "PPS";
-                            }
-#endif
                             (void) snprintf (fixBuff, STRINGBUFFSIZE,
-                                             "2D %s Fix, la %f, lo %f",
-                                             fixStatus,
+                                             "2D %s fix, la %f, lo %f",
+                                             statusString[status],
                                              gpsdata.fix.latitude,
                                              gpsdata.fix.longitude);
                         }
@@ -1227,35 +1207,9 @@ void showData (void) {
                         formatAltitude (gpsdata.fix.altitude);
                         if (verbose) {
 
-#if ( GPSD_API_MAJOR_VERSION >= 12 )
-                            switch (gpsdata.fix.status) {
-                            case STATUS_GPS: //      1
-                                fixStatus = "GPS";
-                            case STATUS_DGPS: //     2       // with DGPS
-                                fixStatus = "DGPS";
-                            case STATUS_RTK_FIX: //  3       // with RTK Fixed
-                                fixStatus = "RTK fixed";
-                            case STATUS_RTK_FLT: //  4       // with RTK Float
-                                fixStatus = "RTK float";
-                            case STATUS_DR: //       5       // with dead reckoning
-                                fixStatus = "Dead Reckoning";
-                            case STATUS_GNSSDR: //   6       // with GNSS + dead reckoning
-                                fixStatus = "GNSS and dead reckoning";
-                            case STATUS_TIME: //     7       // time only (surveyed in, manual)
-                                fixStatus = "Time only";
-// Note that STATUS_SIM and MODE_NO_FIX can go together.
-                            case STATUS_SIM: //      8       // simulated
-                                fixStatus = "Simulated";
-/* yes, Precise Positioning Service (PPS)
- * Not to be confused with Pulse per Second (PPS)
- * PPS is the encrypted military P(Y)-code */
-                            case STATUS_PPS_FIX: //  9
-                                fixStatus = "PPS";
-                            }
-#endif
                             (void) snprintf (fixBuff, STRINGBUFFSIZE,
-                                             "3D %s Fix, la %f, lo %f, %f",
-                                             fixStatus,
+                                             "3D %s fix, la %f, lo %f, %f",
+                                             statusString[status],
                                              gpsdata.fix.latitude,
                                              gpsdata.fix.longitude,
                                              gpsdata.fix.altitude);
