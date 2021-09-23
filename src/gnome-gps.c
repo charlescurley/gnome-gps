@@ -12,16 +12,10 @@
 
 #include <gps.h>                /* Not the same as gpsd.h */
 
-/* Do we recognize the current libgps API? We'll take 5.1, 6.1, 7.0,
- * 8.0, 9.0, 10.0, or 11.0. Note that we skipped 9.1. If we correctly
- * detect the version, we #define VERSIONSET. If not, the last test in
- * this sequence fails, and we bomb out. */
-
-#if ( GPSD_API_MAJOR_VERSION == 5 && GPSD_API_MINOR_VERSION == 1 )
-#warning Setting up for API version 5.1
-#define VERSION501
-#define VERSIONSET
-#endif  /* 5.1 */
+/* Do we recognize the current libgps API? We'll take 6.1, 7.0, 8.0,
+ * 9.0, 10.0, 11.0, and 12.0. Note that we skipped 9.1. If we
+ * correctly detect the version, we #define VERSIONSET. If not, the
+ * last test in this sequence fails, and we bomb out. */
 
 #if ( GPSD_API_MAJOR_VERSION == 6 && GPSD_API_MINOR_VERSION == 1 )
 #warning Setting up for API version 6.1
