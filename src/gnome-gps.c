@@ -99,14 +99,14 @@
 /* I don't know when upstream moved gps_json.h. Anyway, I hope Gary
  * Miller does something about this mess. */
 #include "/home/charles/versioned/gpsd/gps_json.h" /* Tacky! */
-#else
+#else  /* GPSD_API_MAJOR_VERSION < 12 */
 #include "/home/charles/versioned/gpsd/include/gps_json.h" /* Tacky! */
-#endif
+#endif  /* GPSD_API_MAJOR_VERSION < 12 */
 
 bool showMessage = false;
 char gpsdMessage[GPS_JSON_RESPONSE_MAX];
 size_t gpsdMessageLen = 0;
-#endif
+#endif  /* GPSD_API_MAJOR_VERSION >= 7 */
 
 /* Settings that go into the configuration file. */
 typedef struct {
@@ -935,7 +935,7 @@ void showData (void) {
         }
         printf ("%s\n", gpsdMessage);
     }
-#endif
+#endif  /* GPSD_API_MAJOR_VERSION >= 7 */
 
     /* Some things we ignore. */
     if (gpsdata.set & POLICY_SET) {
@@ -1131,24 +1131,24 @@ void showData (void) {
     if (gpsdata.set & STATUS_SET) {
 #if ( GPSD_API_MAJOR_VERSION < 10 )
         int status = (gpsdata.status);
-#else
+#else  /* #if ( GPSD_API_MAJOR_VERSION < 10 ) */
         int status = (gpsdata.fix.status);
-#endif
+#endif  /* #if ( GPSD_API_MAJOR_VERSION < 10 ) */
         switch (status) {
 #if ( GPSD_API_MAJOR_VERSION < 12 )
         case STATUS_NO_FIX:
             (void) strcpy (fixBuff, "No fix");
-#else
+#else  /* #if ( GPSD_API_MAJOR_VERSION < 12 ) */
         case STATUS_UNK:
             (void) strcpy (fixBuff, "Status unknown");
-#endif
+#endif  /* #if ( GPSD_API_MAJOR_VERSION < 12 ) */
             setColor (&NoFixColor);
             break;
 
 #if ( GPSD_API_MAJOR_VERSION < 12 )
         case STATUS_FIX:
             (void) strcpy (fixBuff, "No fix");
-#else
+#else                        /* #if ( GPSD_API_MAJOR_VERSION < 12 ) */
         case STATUS_GPS: //      1
         case STATUS_DGPS: //     2       // with DGPS
         case STATUS_RTK_FIX: //  3       // with RTK Fixed
@@ -1163,8 +1163,7 @@ void showData (void) {
  * PPS is the encrypted military P(Y)-code */
         case STATUS_PPS_FIX: //  9
             (void) strcpy (fixBuff, "No fix");
-#endif
-            /* #endif */
+#endif  /* #if ( GPSD_API_MAJOR_VERSION < 12 ) */
 
             if (gpsdata.set & MODE_SET) {
                 switch (gpsdata.fix.mode) {
@@ -1232,10 +1231,10 @@ void showData (void) {
 #if ( GPSD_API_MAJOR_VERSION < 10 )
             (void) fprintf (stderr, "Catastrophic error: Invalid status %d.\n",
                             gpsdata.status);
-#else
+#else  /* #if ( GPSD_API_MAJOR_VERSION < 10 ) */
             (void) fprintf (stderr, "Catastrophic error: Invalid status %d.\n",
                             gpsdata.fix.status);
-#endif
+#endif  /* #if ( GPSD_API_MAJOR_VERSION < 10 ) */
             setColor (&NoFixColor);
             return;
         }
@@ -1299,9 +1298,9 @@ gint gpsPoll (gpointer data) {
 
 #if GPSD_API_MAJOR_VERSION >= 7 /* API change. */
         ret = gps_read (&gpsdata, gpsdMessage, gpsdMessageLen);
-#else
+#else  /* #if GPSD_API_MAJOR_VERSION >= 7 */
         ret = gps_read (&gpsdata);
-#endif
+#endif  /* #if GPSD_API_MAJOR_VERSION >= 7 */
         if (ret <= 1) {
             fprintf (stderr, "Gnome-gps: ret is %d. ", ret);
             perror (NULL);
@@ -1632,9 +1631,9 @@ int main ( int   argc,
     /* for option processing. */
 #if GPSD_API_MAJOR_VERSION >= 7 /* API change. */
     char *optstring = "d:jkmp:uvV";
-#else
+#else  /* #if GPSD_API_MAJOR_VERSION >= 7 */
     char *optstring = "d:kmp:uvV";
-#endif
+#endif  /* #if GPSD_API_MAJOR_VERSION >= 7 */
     int opt = 0;
 
     while (( opt = getopt (argc, argv, optstring)) != -1) {
@@ -1668,7 +1667,7 @@ int main ( int   argc,
             showMessage = true;
             gpsdMessageLen = GPS_JSON_RESPONSE_MAX;
             break;
-#endif
+#endif  /* #if GPSD_API_MAJOR_VERSION >= 7 */
 
         case US:
             units = opt;
@@ -1701,11 +1700,11 @@ int main ( int   argc,
             (void) fprintf(stderr,
                            "Usage: %s [-d d] [-j] [-m] [-k] [-p port] [-u] [-v] [-V] [host]\n",
                            baseName);
-#else
+#else  /* #if GPSD_API_MAJOR_VERSION >= 7 */
             (void) fprintf(stderr,
                            "Usage: %s [-d d] [-m] [-k] [-p port] [-u] [-v] [-V] [host]\n",
                            baseName);
-#endif
+#endif  /* #if GPSD_API_MAJOR_VERSION >= 7 */
             return(-2);
         }
     }
