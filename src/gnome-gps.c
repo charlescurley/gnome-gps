@@ -92,9 +92,9 @@
 #if ( GPSD_API_MAJOR_VERSION < 12 )
 /* I don't know when upstream moved gps_json.h. Anyway, I hope Gary
  * Miller does something about this mess. */
-#include "/home/charles/versioned/gpsd/gps_json.h" /* Tacky! */
+#include "/root/versioned/gpsd/gps_json.h" /* Tacky! */
 #else  /* GPSD_API_MAJOR_VERSION < 12 */
-#include "/home/charles/versioned/gpsd/include/gps_json.h" /* Tacky! */
+#include "/root/versioned/gpsd/include/gps_json.h" /* Tacky! */
 #endif  /* GPSD_API_MAJOR_VERSION < 12 */
 
 bool showMessage = false;
@@ -1162,20 +1162,20 @@ void showData (void) {
             if (gpsdata.set & MODE_SET) {
                 switch (gpsdata.fix.mode) {
                 case MODE_NOT_SEEN:
-                    (void) strcpy (fixBuff, "Fix not yet seen");
                     setColor (&NoFixColor);
+                    (void) strcpy (fixBuff, "Fix not yet seen");
                     break;
 
                 case MODE_NO_FIX:
-                    (void) strcpy (fixBuff, "No fix yet");
                     setColor (&NoFixColor);
+                    (void) strcpy (fixBuff, "No fix yet");
                     break;
 
                 case MODE_2D:
+                    setColor (&TwoDFixColor);
                     if ((gpsdata.set & LATLON_SET)) {
                         formatLat (gpsdata.fix.latitude);
                         formatLong (gpsdata.fix.longitude);
-                        setColor (&TwoDFixColor);
 
                         if (verbose) {
                             (void) snprintf (fixBuff, STRINGBUFFSIZE,
@@ -1188,6 +1188,7 @@ void showData (void) {
                     break;
 
                 case MODE_3D:
+                    setColor (&ThreeDFixColor);
                     if ((gpsdata.set & (LATLON_SET))) {
                         formatLat (gpsdata.fix.latitude);
                         formatLong (gpsdata.fix.longitude);
@@ -1209,7 +1210,6 @@ void showData (void) {
                         }
                     }
 
-                    setColor (&ThreeDFixColor);
                     break;
 
                 default:
