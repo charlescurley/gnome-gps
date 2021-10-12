@@ -92,13 +92,13 @@
 #if ( GPSD_API_MAJOR_VERSION < 12 )
 /* I don't know when upstream moved gps_json.h. Anyway, I hope Gary
  * Miller does something about this mess. */
-#include "/root/versioned/gpsd/gps_json.h" /* Tacky! */
-#else  /* GPSD_API_MAJOR_VERSION < 12 */
-#include "/root/versioned/gpsd/include/gps_json.h" /* Tacky! */
+/* #include "/root/versioned/gpsd/gps_json.h" /\* Tacky! *\/ */
+/* #else  /\* GPSD_API_MAJOR_VERSION < 12 *\/ */
+/* #include "/root/versioned/gpsd/include/gps_json.h" /\* Tacky! *\/ */
 #endif  /* GPSD_API_MAJOR_VERSION < 12 */
 
 bool showMessage = false;
-char gpsdMessage[GPS_JSON_RESPONSE_MAX];
+/* char gpsdMessage[GPS_JSON_RESPONSE_MAX]; */
 size_t gpsdMessageLen = 0;
 #endif  /* GPSD_API_MAJOR_VERSION >= 7 */
 
@@ -919,17 +919,17 @@ static GtkWidget *get_menubar_menu( GtkWidget  *window ) {
 void showData (void) {
     char tmpBuff[STRINGBUFFSIZE];   /* generic temporary holding. */
 
-#if GPSD_API_MAJOR_VERSION >= 7
-    if (showMessage == true) {
-        int len;
-        len = strlen (gpsdMessage);
-        if ( '\r' == gpsdMessage[len - 1]) {
-            /* remove any trailing \r */
-            gpsdMessage[len - 1] = '\0';
-        }
-        printf ("%s\n", gpsdMessage);
-    }
-#endif  /* GPSD_API_MAJOR_VERSION >= 7 */
+/* #if GPSD_API_MAJOR_VERSION >= 7 */
+/*     if (showMessage == true) { */
+/*         int len; */
+/*         len = strlen (gpsdMessage); */
+/*         if ( '\r' == gpsdMessage[len - 1]) { */
+/*             /\* remove any trailing \r *\/ */
+/*             gpsdMessage[len - 1] = '\0'; */
+/*         } */
+/*         printf ("%s\n", gpsdMessage); */
+/*     } */
+/* #endif  /\* GPSD_API_MAJOR_VERSION >= 7 *\/ */
 
     /* Some things we ignore. */
     if (gpsdata.set & POLICY_SET) {
@@ -1291,7 +1291,8 @@ gint gpsPoll (gpointer data) {
         int ret;
 
 #if GPSD_API_MAJOR_VERSION >= 7 /* API change. */
-        ret = gps_read (&gpsdata, gpsdMessage, gpsdMessageLen);
+        /* ret = gps_read (&gpsdata, gpsdMessage, gpsdMessageLen); */
+        ret = gps_read (&gpsdata, NULL, 0);
 #else  /* #if GPSD_API_MAJOR_VERSION >= 7 */
         ret = gps_read (&gpsdata);
 #endif  /* #if GPSD_API_MAJOR_VERSION >= 7 */
@@ -1656,12 +1657,12 @@ int main ( int   argc,
             }
             break;
 
-#if GPSD_API_MAJOR_VERSION >= 7 /* API change. */
-        case 'j':
-            showMessage = true;
-            gpsdMessageLen = GPS_JSON_RESPONSE_MAX;
-            break;
-#endif  /* #if GPSD_API_MAJOR_VERSION >= 7 */
+/* #if GPSD_API_MAJOR_VERSION >= 7 /\* API change. *\/ */
+/*         case 'j': */
+/*             showMessage = true; */
+/*             gpsdMessageLen = GPS_JSON_RESPONSE_MAX; */
+/*             break; */
+/* #endif  /\* #if GPSD_API_MAJOR_VERSION >= 7 *\/ */
 
         case US:
             units = opt;
