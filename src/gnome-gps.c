@@ -1222,13 +1222,8 @@ void showData (void) {
             break;
 
         default:
-#if ( GPSD_API_MAJOR_VERSION < 10 )
             (void) fprintf (stderr, "Catastrophic error: Invalid status %d.\n",
-                            gpsdata.status);
-#else  /* #if ( GPSD_API_MAJOR_VERSION < 10 ) */
-            (void) fprintf (stderr, "Catastrophic error: Invalid status %d.\n",
-                            gpsdata.fix.status);
-#endif  /* #if ( GPSD_API_MAJOR_VERSION < 10 ) */
+                            status);
             setColor (&NoFixColor);
             return;
         }
