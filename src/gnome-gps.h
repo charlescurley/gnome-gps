@@ -10,6 +10,8 @@ gchar *copyrightString = "Copyright © 2009 to the date of the most recent modif
 
 /* prototypes */
 inline void preserve (GtkEntry *entry, gint index);
+char *getStatusString (int status);
+void showStatusStrings (void);
 inline void sendWatch (void);
 void setColor (GdkColor *color);
 static gboolean delete_event( GtkWidget *widget,

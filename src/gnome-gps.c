@@ -180,13 +180,6 @@ char returnString[STRINGBUFFSIZE];
 const gchar *baseName;          /* So we can print out only the base
                                    name in the help. */
 
-/* A string array to make the status more human friendly. Indexed by
- * the various status in gpsd.h. */
-static char statusString[][19] = {"no", "", "DGPS", "RTK fixed",
-                                  "RTK float", "Dead reckoning",
-                                  "GNSS dead reckoning", "Time only",
-                                  "Simulated", "PPS"};
-
 /* SIZE must be last as we use it to size the array and in related
  * code. */
 enum entryNames { LAT, LONG, ALT, SPEED, TRACK,
@@ -212,6 +205,32 @@ GdkColor *oldColor = NULL;
  * here. */
 
 char *configDir = ".config";
+
+/* getStatusString: Get a string appropriate for the current
+ * status. With boundary checking. */
+
+/* A string array to make the status more human friendly. Indexed by
+ * the various status in gpsd.h. With boundaries so we can handle
+ * unknown values. */
+#define SIZESTATUSSTRINGS 12
+static char statusString[SIZESTATUSSTRINGS][19]
+= {"unknown", "no", "", "DGPS",
+   "RTK fixed", "RTK float", "Dead reckoning",
+   "GNSS dead reckoning", "Time only",
+   "Simulated", "PPS", "unknown"};
+
+char *getStatusString (int status) {
+    status++;
+    status = MIN (status, SIZESTATUSSTRINGS);
+    status = MAX (status, 0);
+    return statusString[status];
+}
+
+/* void showStatusStrings (void) { */
+/*     for (gint i=-1; i < SIZESTATUSSTRINGS-1; i++) { */
+/*         printf ("String %d: %s.\n", i, getStatusString (i)); */
+/*     } */
+/* } */
 
 /* sendWatch: tell the gps daemon that we'd like to connect and
  * receive data, thank you. Use this after making a socket
@@ -1203,8 +1222,8 @@ void showData (void) {
 
                         if (verbose) {
                             (void) snprintf (fixBuff, STRINGBUFFSIZE,
-                                             "2D %s fix, la %f, lo %f",
-                                             statusString[status],
+                                             "%sfix, la %f, lo %f",
+                                             getStatusString(status),
                                              gpsdata.fix.latitude,
                                              gpsdata.fix.longitude);
                         }
@@ -1227,7 +1246,7 @@ void showData (void) {
 
                             (void) snprintf (fixBuff, STRINGBUFFSIZE,
                                              "3D %s fix, la %f, lo %f, %f",
-                                             statusString[status],
+                                             getStatusString(status),
                                              gpsdata.fix.latitude,
                                              gpsdata.fix.longitude,
                                              gpsdata.fix.altitude);
@@ -1729,6 +1748,10 @@ int main ( int   argc,
         /* we have a host name.... */
         (void) strncpy (hostName, argv[optind], STRINGBUFFSIZE-1);
     }
+
+    /* if (verbose) { */
+    /*     showStatusStrings (); */
+    /* } */
 
     {
         /* create a new window */
