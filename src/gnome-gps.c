@@ -1150,6 +1150,7 @@ void showData (void) {
         case STATUS_FIX:
             (void) strcpy (fixBuff, "No fix");
 #else                        /* #if ( GPSD_API_MAJOR_VERSION < 11 ) */
+#if ( GPSD_API_MAJOR_VERSION < 12 )
         case STATUS_FIX: //      1
         case STATUS_DGPS_FIX: // 2       // with DGPS
         case STATUS_RTK_FIX: //  3       // with RTK Fixed
@@ -1163,6 +1164,21 @@ void showData (void) {
  * Not to be confused with Pulse per Second (PPS)
  * PPS is the encrypted military P(Y)-code */
         case STATUS_PPS_FIX: //  9
+#else                        /* #if ( GPSD_API_MAJOR_VERSION < 12 ) */
+        case STATUS_GPS:       //  1
+        case STATUS_DGPS:      //  2   // with DGPS
+        case STATUS_RTK_FIX:   //  3   // with RTK Fixed
+        case STATUS_RTK_FLT:   //  4   // with RTK Float
+        case STATUS_DR:        //  5   // with dead reckoning
+        case STATUS_GNSSDR:    //  6   // with GNSS + dead reckoning
+        case STATUS_TIME:      //  7   // time only (surveyed in, manual)
+// Note that STATUS_SIM and MODE_NO_FIX can go together.
+        case STATUS_SIM:       //  8   // simulated
+/* yes, Precise Positioning Service (PPS)
+ * Not to be confused with Pulse per Second (PPS)
+ * PPS is the encrypted military P(Y)-code */
+        case STATUS_PPS_FIX:    //  9
+#endif                       /* #if ( GPSD_API_MAJOR_VERSION < 12 ) */
             (void) strcpy (fixBuff, "No fix");
 #endif  /* #if ( GPSD_API_MAJOR_VERSION < 11 ) */
 
