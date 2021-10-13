@@ -89,13 +89,13 @@
 #if GPSD_API_MAJOR_VERSION >= 7
 /* from <gps_json.h> */
 /* #define GPS_JSON_RESPONSE_MAX   4096 */
-#if ( GPSD_API_MAJOR_VERSION < 12 )
+#if ( GPSD_API_MAJOR_VERSION < 11 )
 /* I don't know when upstream moved gps_json.h. Anyway, I hope Gary
  * Miller does something about this mess. */
 /* #include "/root/versioned/gpsd/gps_json.h" /\* Tacky! *\/ */
-/* #else  /\* GPSD_API_MAJOR_VERSION < 12 *\/ */
+/* #else  /\* GPSD_API_MAJOR_VERSION < 11 *\/ */
 /* #include "/root/versioned/gpsd/include/gps_json.h" /\* Tacky! *\/ */
-#endif  /* GPSD_API_MAJOR_VERSION < 12 */
+#endif  /* GPSD_API_MAJOR_VERSION < 11 */
 
 bool showMessage = false;
 /* char gpsdMessage[GPS_JSON_RESPONSE_MAX]; */
@@ -1122,12 +1122,19 @@ void showData (void) {
         /* gpsdata.satellites_visible = 0; */
     }
 
+    if (verbose) {
+        printf ("Mask is %s.\n",
+                gps_maskdump (gpsdata.set));
+    }
+
     if (gpsdata.set & STATUS_SET) {
+        int mode = gpsdata.fix.mode;
 #if ( GPSD_API_MAJOR_VERSION < 10 )
         int status = (gpsdata.status);
 #else  /* #if ( GPSD_API_MAJOR_VERSION < 10 ) */
         int status = (gpsdata.fix.status);
 #endif  /* #if ( GPSD_API_MAJOR_VERSION < 10 ) */
+
         switch (status) {
 #if ( GPSD_API_MAJOR_VERSION < 12 )
         case STATUS_NO_FIX:
@@ -1139,12 +1146,12 @@ void showData (void) {
             setColor (&NoFixColor);
             break;
 
-#if ( GPSD_API_MAJOR_VERSION < 12 )
+#if ( GPSD_API_MAJOR_VERSION < 11 )
         case STATUS_FIX:
             (void) strcpy (fixBuff, "No fix");
-#else                        /* #if ( GPSD_API_MAJOR_VERSION < 12 ) */
-        case STATUS_GPS: //      1
-        case STATUS_DGPS: //     2       // with DGPS
+#else                        /* #if ( GPSD_API_MAJOR_VERSION < 11 ) */
+        case STATUS_FIX: //      1
+        case STATUS_DGPS_FIX: // 2       // with DGPS
         case STATUS_RTK_FIX: //  3       // with RTK Fixed
         case STATUS_RTK_FLT: //  4       // with RTK Float
         case STATUS_DR: //       5       // with dead reckoning
@@ -1157,10 +1164,11 @@ void showData (void) {
  * PPS is the encrypted military P(Y)-code */
         case STATUS_PPS_FIX: //  9
             (void) strcpy (fixBuff, "No fix");
-#endif  /* #if ( GPSD_API_MAJOR_VERSION < 12 ) */
+#endif  /* #if ( GPSD_API_MAJOR_VERSION < 11 ) */
 
             if (gpsdata.set & MODE_SET) {
-                switch (gpsdata.fix.mode) {
+
+                switch (mode) {
                 case MODE_NOT_SEEN:
                     setColor (&NoFixColor);
                     (void) strcpy (fixBuff, "Fix not yet seen");
@@ -1213,8 +1221,10 @@ void showData (void) {
                     break;
 
                 default:
-                    (void) fprintf (stderr, "%s: Catastrophic error: Invalid mode %d.\n",
-                                    baseName, gpsdata.fix.mode);
+                    (void) fprintf (stderr, "%s: Catastrophic error: Invalid mode %d. Status: %d.\n",
+                                    baseName,
+                                    mode,
+                                    status);
                     setColor (&NoFixColor);
                     return;
                 } /* fix.mode */
@@ -1222,8 +1232,8 @@ void showData (void) {
             break;
 
         default:
-            (void) fprintf (stderr, "Catastrophic error: Invalid status %d.\n",
-                            status);
+            (void) fprintf (stderr, "Catastrophic error: Invalid status %d, mode %d.\n",
+                            status, mode);
             setColor (&NoFixColor);
             return;
         }
@@ -1231,7 +1241,7 @@ void showData (void) {
         if (verbose) {
             (void) printf ("set 0x%08x, mode %d, %s, %s.\n",
                            (unsigned int) gpsdata.set,
-                           gpsdata.fix.mode,
+                           mode,
                            timeString,
                            fixBuff);
         }
