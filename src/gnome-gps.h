@@ -6,7 +6,14 @@
 
 char *versionString = "1.7 rc1";
 
+#include <gtk/gtk.h>            /* "apt install libgtk2.0-dev" on
+                                 * debian/ubuntu. */
+
 gchar *copyrightString = "Copyright © 2009 to the date of the most recent modification Charles Curley\n";
+
+
+#define SIZESTATUSSTRINGS 12    /* Also in debug.h */
+
 
 /* prototypes */
 inline void preserve (GtkEntry *entry, gint index);

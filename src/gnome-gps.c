@@ -70,8 +70,6 @@
 #error Unknown gps API protocol version; see gps.h for the current value of GPSD_API_MINOR_VERSION
 #endif
 
-#include <gtk/gtk.h>            /* "apt install libgtk2.0-dev" on
-                                 * debian/ubuntu. */
 
 #include <math.h>               /* For isnan (), modf (), fabs () */
 #include <string.h>             /* For strcpy (), etc. */
@@ -212,7 +210,6 @@ char *configDir = ".config";
 /* A string array to make the status more human friendly. Indexed by
  * the various status in gpsd.h. With boundaries so we can handle
  * unknown values. */
-#define SIZESTATUSSTRINGS 12
 static char statusString[SIZESTATUSSTRINGS][19]
 = {"unknown", "no", "", "DGPS",
    "RTK fixed", "RTK float", "Dead reckoning",
@@ -226,11 +223,6 @@ char *getStatusString (int status) {
     return statusString[status];
 }
 
-/* void showStatusStrings (void) { */
-/*     for (gint i=-1; i < SIZESTATUSSTRINGS-1; i++) { */
-/*         printf ("String %d: %s.\n", i, getStatusString (i)); */
-/*     } */
-/* } */
 
 /* sendWatch: tell the gps daemon that we'd like to connect and
  * receive data, thank you. Use this after making a socket
@@ -1749,9 +1741,11 @@ int main ( int   argc,
         (void) strncpy (hostName, argv[optind], STRINGBUFFSIZE-1);
     }
 
-    /* if (verbose) { */
-    /*     showStatusStrings (); */
-    /* } */
+#ifdef DEBUG
+    if (verbose) {
+        showStatusStrings ();
+    }
+#endif
 
     {
         /* create a new window */
