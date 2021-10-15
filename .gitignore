@@ -1,3 +1,4 @@
 src/gnome-gps
+src/debug
 *.o
 *.do
