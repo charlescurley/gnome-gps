@@ -1719,7 +1719,7 @@ int main ( int   argc,
 
         case 'V':       /* N.b.: falls through to the default case! */
             (void) fprintf (stderr,
-                            "%s, compiled for gpsd API version %d.%d.\n",
+                            "Version %s, compiled for gpsd API version %d.%d.\n",
                             versionString, GPSD_API_MAJOR_VERSION,
                             GPSD_API_MINOR_VERSION);
 
