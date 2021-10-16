@@ -84,21 +84,21 @@
 #include <dirent.h>             /* directory manipulation, dirent
                                  * stuff. */
 
-#if GPSD_API_MAJOR_VERSION >= 7
+/* #if GPSD_API_MAJOR_VERSION >= 7 */
 /* from <gps_json.h> */
 /* #define GPS_JSON_RESPONSE_MAX   4096 */
-#if ( GPSD_API_MAJOR_VERSION < 11 )
+/* #if ( GPSD_API_MAJOR_VERSION < 11 ) */
 /* I don't know when upstream moved gps_json.h. Anyway, I hope Gary
  * Miller does something about this mess. */
 /* #include "/root/versioned/gpsd/gps_json.h" /\* Tacky! *\/ */
 /* #else  /\* GPSD_API_MAJOR_VERSION < 11 *\/ */
 /* #include "/root/versioned/gpsd/include/gps_json.h" /\* Tacky! *\/ */
-#endif  /* GPSD_API_MAJOR_VERSION < 11 */
+/* #endif  /\* GPSD_API_MAJOR_VERSION < 11 *\/ */
 
-bool showMessage = false;
+/* bool showMessage = false; */
 /* char gpsdMessage[GPS_JSON_RESPONSE_MAX]; */
-size_t gpsdMessageLen = 0;
-#endif  /* GPSD_API_MAJOR_VERSION >= 7 */
+/* size_t gpsdMessageLen = 0; */
+/* #endif  /\* GPSD_API_MAJOR_VERSION >= 7 *\/ */
 
 /* Settings that go into the configuration file. */
 typedef struct {
@@ -1657,7 +1657,8 @@ int main ( int   argc,
 
     /* for option processing. */
 #if GPSD_API_MAJOR_VERSION >= 7 /* API change. */
-    char *optstring = "d:jkmp:uvV";
+    /* char *optstring = "d:jkmp:uvV"; */
+    char *optstring = "d:kmp:uvV";
 #else  /* #if GPSD_API_MAJOR_VERSION >= 7 */
     char *optstring = "d:kmp:uvV";
 #endif  /* #if GPSD_API_MAJOR_VERSION >= 7 */
@@ -1725,7 +1726,8 @@ int main ( int   argc,
         default:        /* '?' */
 #if GPSD_API_MAJOR_VERSION >= 7 /* API change. */
             (void) fprintf(stderr,
-                           "Usage: %s [-d d] [-j] [-m] [-k] [-p port] [-u] [-v] [-V] [host]\n",
+                           /* "Usage: %s [-d d] [-j] [-m] [-k] [-p port] [-u] [-v] [-V] [host]\n", */
+                           "Usage: %s [-d d] [-m] [-k] [-p port] [-u] [-v] [-V] [host]\n",
                            baseName);
 #else  /* #if GPSD_API_MAJOR_VERSION >= 7 */
             (void) fprintf(stderr,
