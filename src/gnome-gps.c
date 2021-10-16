@@ -204,9 +204,6 @@ GdkColor *oldColor = NULL;
 
 char *configDir = ".config";
 
-/* getStatusString: Get a string appropriate for the current
- * status. With boundary checking. */
-
 /* A string array to make the status more human friendly. Indexed by
  * the various status in gpsd.h. With boundaries so we can handle
  * unknown values. */
@@ -215,6 +212,9 @@ static char statusString[SIZESTATUSSTRINGS][19]
    "RTK fixed", "RTK float", "Dead reckoning",
    "GNSS dead reckoning", "Time only",
    "Simulated", "PPS", "unknown"};
+
+/* getStatusString: Get a string appropriate for the current
+ * status. With boundary checking. */
 
 char *getStatusString (int status) {
     status++;
