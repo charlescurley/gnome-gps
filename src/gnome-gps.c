@@ -1657,8 +1657,8 @@ int main ( int   argc,
 
     /* for option processing. */
 #if GPSD_API_MAJOR_VERSION >= 7 /* API change. */
-    /* char *optstring = "d:jkmp:uvV"; */
-    char *optstring = "d:kmp:uvV";
+    /* char *optstring = "d:hjkmp:uvV"; */
+    char *optstring = "d:hkmp:uvV";
 #else  /* #if GPSD_API_MAJOR_VERSION >= 7 */
     char *optstring = "d:kmp:uvV";
 #endif  /* #if GPSD_API_MAJOR_VERSION >= 7 */
@@ -1722,12 +1722,13 @@ int main ( int   argc,
                             "Version %s, compiled for gpsd API version %d.%d.\n",
                             versionString, GPSD_API_MAJOR_VERSION,
                             GPSD_API_MINOR_VERSION);
+        case 'h':
 
         default:        /* '?' */
 #if GPSD_API_MAJOR_VERSION >= 7 /* API change. */
             (void) fprintf(stderr,
-                           /* "Usage: %s [-d d] [-j] [-m] [-k] [-p port] [-u] [-v] [-V] [host]\n", */
-                           "Usage: %s [-d d] [-m] [-k] [-p port] [-u] [-v] [-V] [host]\n",
+                           /* "Usage: %s [-d d] [-h] [-j] [-m] [-k] [-p port] [-u] [-v] [-V] [host]\n", */
+                           "Usage: %s [-d d] [-h] [-m] [-k] [-p port] [-u] [-v] [-V] [host]\n",
                            baseName);
 #else  /* #if GPSD_API_MAJOR_VERSION >= 7 */
             (void) fprintf(stderr,
