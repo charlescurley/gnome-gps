@@ -1230,8 +1230,7 @@ void showData (void) {
 
                         if (verbose) {
                             (void) snprintf (fixBuff, STRINGBUFFSIZE,
-                                             "%sfix, la %f, lo %f",
-                                             getStatusString(status),
+                                             "la %f, lo %f",
                                              gpsdata.fix.latitude,
                                              gpsdata.fix.longitude);
                         }
@@ -1253,8 +1252,7 @@ void showData (void) {
                         if (verbose) {
 
                             (void) snprintf (fixBuff, STRINGBUFFSIZE,
-                                             "3D %s fix, la %f, lo %f, %f",
-                                             getStatusString(status),
+                                             "la %f, lo %f, %f",
                                              gpsdata.fix.latitude,
                                              gpsdata.fix.longitude,
                                              gpsdata.fix.altitude);
@@ -1282,10 +1280,11 @@ void showData (void) {
         }
 
         if (verbose) {
-            (void) printf ("set 0x%08x, mode |%s|, %s, %s.\n",
+            (void) printf ("set 0x%08x, %s, mode: |%s|, status |%s|, %s.\n",
                            (unsigned int) gpsdata.set,
-                           getModeString (mode),
                            timeString,
+                           getModeString (mode),
+                           getStatusString (status),
                            fixBuff);
         }
     } /* STATUS_SET */
