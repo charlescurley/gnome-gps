@@ -222,6 +222,22 @@ char *getStatusString (int status) {
     status = MAX (status, 0);
     return statusString[status];
 }
+/* Similarly, a string array to make the mode more human
+ * friendly. Indexed by the various mode in gpsd.h. With boundaries so
+ * we can handle unknown values. */
+static char modeString[SIZEMODESTRINGS][9]
+= {"unknown", "not seen", "no fix", "2D fix",
+   "3D fix", "unknown"};
+
+/* getModeString: Get a string appropriate for the current
+ * mode. With boundary checking. */
+
+char *getModeString (int mode) {
+    mode++;
+    mode = MIN (mode, SIZEMODESTRINGS);
+    mode = MAX (mode, 0);
+    return modeString[mode];
+}
 
 
 /* sendWatch: tell the gps daemon that we'd like to connect and
@@ -1266,9 +1282,9 @@ void showData (void) {
         }
 
         if (verbose) {
-            (void) printf ("set 0x%08x, mode %d, %s, %s.\n",
+            (void) printf ("set 0x%08x, mode |%s|, %s, %s.\n",
                            (unsigned int) gpsdata.set,
-                           mode,
+                           getModeString (mode),
                            timeString,
                            fixBuff);
         }

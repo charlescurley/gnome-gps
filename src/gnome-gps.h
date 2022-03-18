@@ -13,7 +13,7 @@ gchar *copyrightString = "Copyright © 2009 to the date of the most recent modif
 
 
 #define SIZESTATUSSTRINGS 12    /* Also in debug.h */
-
+#define SIZEMODESTRINGS 6       /* Also in debug.h */
 
 /* prototypes */
 inline void preserve (GtkEntry *entry, gint index);
