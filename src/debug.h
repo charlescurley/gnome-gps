@@ -4,7 +4,7 @@
                                  * debian/ubuntu. */
 
 #define SIZESTATUSSTRINGS 12    /* Also in gnome-gps.h */
-#define SIZEMODESTRINGS 6       /* Also in gnome-gps.h */
+#define SIZEMODESTRINGS 4       /* Also in gnome-gps.h */
 
 /* prototypes */
 char *getStatusString (int status);

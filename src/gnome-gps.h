@@ -4,7 +4,7 @@
  * itself, i.e under the BSD License. See the file COPYING in the
  * distribution. This program comes with ABSOLUTELY NO WARRANTY. */
 
-char *versionString = "1.7 rc1";
+char *versionString = "2.0 rc1";
 
 #include <gtk/gtk.h>            /* "apt install libgtk2.0-dev" on
                                  * debian/ubuntu. */
@@ -13,7 +13,7 @@ gchar *copyrightString = "Copyright © 2009 to the date of the most recent modif
 
 
 #define SIZESTATUSSTRINGS 12    /* Also in debug.h */
-#define SIZEMODESTRINGS 6       /* Also in debug.h */
+#define SIZEMODESTRINGS 4       /* Also in debug.h */
 
 /* prototypes */
 inline void preserve (GtkEntry *entry, gint index);

@@ -10,36 +10,17 @@
 
 */
 
+/* Version 2.0 greatly benefited from
+ * https://gpsd.io/gpsd-client-example-code.html. */
+
 #include <gps.h>                /* Not the same as gpsd.h */
 
-/* Do we recognize the current libgps API? We'll take 6.1, 7.0, 8.0,
- * 9.0, 10.0, 11.0, and 12.0. Note that we skipped 9.1. If we
- * correctly detect the version, we #define VERSIONSET. If not, the
- * last test in this sequence fails, and we bomb out. */
-
-#if ( GPSD_API_MAJOR_VERSION == 6 && GPSD_API_MINOR_VERSION == 1 )
-#warning Setting up for API version 6.1
-#define VERSION601
-#define VERSIONSET
-#endif  /* 6.1 */
-
-#if ( GPSD_API_MAJOR_VERSION == 7 && GPSD_API_MINOR_VERSION == 0 )
-#warning Setting up for API version 7.0
-#define VERSION700
-#define VERSIONSET
-#endif  /* 7.0 */
-
-#if ( GPSD_API_MAJOR_VERSION == 8 && GPSD_API_MINOR_VERSION == 0 )
-#warning Setting up for API version 8.0
-#define VERSION800
-#define VERSIONSET
-#endif  /* 8.0 */
-
-#if ( GPSD_API_MAJOR_VERSION == 9 && GPSD_API_MINOR_VERSION == 0 )
-#warning Setting up for API version 9.0
-#define VERSION0900
-#define VERSIONSET
-#endif  /* 9.0 */
+/* Do we recognize the current libgps API? We'll take 10.0, 11.0, and
+ * 12.0. Note that we skipped 9.1. If we correctly detect the version,
+ * we #define VERSIONSET. If not, the last test in this sequence
+ * fails, and we bomb out. If you insist on using a prior version, see
+ * previous versions of this code by checking them out from the git
+ * repository. */
 
 /* Skipping 9.1. See /usr/include/gps.h or /usr/local/include/gps.h. */
 #if ( GPSD_API_MAJOR_VERSION == 10 && GPSD_API_MINOR_VERSION == 0 )
@@ -48,14 +29,14 @@
 #define VERSIONSET
 #endif  /* 10.0 */
 
-/* This is for the version on debian 10, Buster, gpsd version 3.22, libgps version 28. */
+/* This is for the version on Debian 10, Buster, gpsd version 3.22, libgps version 28. */
 #if ( GPSD_API_MAJOR_VERSION == 11 && GPSD_API_MINOR_VERSION == 0 )
 #warning Setting up for API version 11.0
 #define VERSION1100
 #define VERSIONSET
 #endif  /* 11.0 */
 
-/* This is for the version on debian 10, Buster, gpsd version 3.23.1~rc1, libgps version 29. */
+/* This is for the version on Debian 10, Buster, gpsd version 3.23.1~rc1, libgps version 29. */
 #if ( GPSD_API_MAJOR_VERSION == 12 && GPSD_API_MINOR_VERSION == 0 )
 #warning Setting up for API version 12.0
 #define VERSION1200
@@ -83,22 +64,6 @@
 
 #include <dirent.h>             /* directory manipulation, dirent
                                  * stuff. */
-
-/* #if GPSD_API_MAJOR_VERSION >= 7 */
-/* from <gps_json.h> */
-/* #define GPS_JSON_RESPONSE_MAX   4096 */
-/* #if ( GPSD_API_MAJOR_VERSION < 11 ) */
-/* I don't know when upstream moved gps_json.h. Anyway, I hope Gary
- * Miller does something about this mess. */
-/* #include "/root/versioned/gpsd/gps_json.h" /\* Tacky! *\/ */
-/* #else  /\* GPSD_API_MAJOR_VERSION < 11 *\/ */
-/* #include "/root/versioned/gpsd/include/gps_json.h" /\* Tacky! *\/ */
-/* #endif  /\* GPSD_API_MAJOR_VERSION < 11 *\/ */
-
-/* bool showMessage = false; */
-/* char gpsdMessage[GPS_JSON_RESPONSE_MAX]; */
-/* size_t gpsdMessageLen = 0; */
-/* #endif  /\* GPSD_API_MAJOR_VERSION >= 7 *\/ */
 
 /* Settings that go into the configuration file. */
 typedef struct {
@@ -195,7 +160,7 @@ inline void preserve (GtkEntry *entry, gint index) {
 GdkColor ThreeDFixColor = {0,      0, 0xffff,      0}; /* green */
 GdkColor TwoDFixColor   = {0, 0xff00, 0xff00,      0}; /* yellow */
 GdkColor NoFixColor     = {0, 0xff00,      0,      0}; /* red */
-GdkColor NoGpsdColor    = {0, 0x8000, 0x8000, 0x8000}; /* grey */
+GdkColor NoGpsdColor    = {0, 0x8000, 0x8000, 0x8000}; /* gray */
 GdkColor *oldColor = NULL;
 
 /* The name of the configuration directory. If it exists, in the home
@@ -222,23 +187,11 @@ char *getStatusString (int status) {
     status = MAX (status, 0);
     return statusString[status];
 }
+
 /* Similarly, a string array to make the mode more human
- * friendly. Indexed by the various mode in gpsd.h. With boundaries so
- * we can handle unknown values. */
+ * friendly. Indexed by the various modes in gpsd.h. */
 static char modeString[SIZEMODESTRINGS][9]
-= {"unknown", "not seen", "no fix", "2D fix",
-   "3D fix", "unknown"};
-
-/* getModeString: Get a string appropriate for the current
- * mode. With boundary checking. */
-
-char *getModeString (int mode) {
-    mode++;
-    mode = MIN (mode, SIZEMODESTRINGS);
-    mode = MAX (mode, 0);
-    return modeString[mode];
-}
-
+= {"unseen", "no fix", "2D fix", "3D fix",};
 
 /* sendWatch: tell the gps daemon that we'd like to connect and
  * receive data, thank you. Use this after making a socket
@@ -255,7 +208,7 @@ inline void sendWatch (void) {
 }
 
 /* Initialize our string buffers as we come up, and again on
- * resync. Use strcpy rather than strncpy because thes are all known
+ * resync. Use strcpy rather than strncpy because these are all known
  * sizes and locations. Not much chance of a buffer overflow,
  * malicious or otherwise. */
 void initStrings (void) {
@@ -459,35 +412,6 @@ void formatLong (double longitude) {
     gtk_entry_set_text(entries[LONG], longString );
 }
 
-#if ( GPSD_API_MAJOR_VERSION < 9 )
-char *gnome_gps_unix_to_iso8601(timestamp_t fixtime,
-                                char isotime[], size_t len)
-/* Unix time to ISO8601. Filched from gpsd's gpsutils.c. example:
- * 2007-12-11T23:38:51.033 */
-{
-    struct tm when;
-    double integral, fractional;
-    time_t intfixtime;
-    char timestr[30];
-    char fractstr[10];
-
-    fractional = modf(fixtime, &integral);
-    intfixtime = (time_t) integral;
-    (void)localtime_r(&intfixtime, &when);
-
-    (void)strftime(timestr, sizeof(timestr), "%Y-%m-%dT%H:%M:%S", &when);
-    /*
-     * Do not mess casually with the number of decimal digits in the
-     * format!  Most GPSes report over serial links at 0.01s or 0.001s
-     * precision.
-     */
-    (void)snprintf(fractstr, sizeof(fractstr), "%.3f", fractional);
-    /* add fractional part, ignore leading 0; "0.2" -> ".2" */
-    /*@i2@*/(void)snprintf(isotime, len, "%s%s", timestr, strchr(fractstr,'.'));
-    return isotime;
-}
-
-#else  /* #if GPSD_API_MAJOR_VERSION < 9 */
 char *gnome_gps_timespec_to_iso8601(timespec_t fixtime, char isotime[], size_t len)
 /* Filched from gpsd's gpsutils.c. */
 /* timespec UTC time to ISO8601, no timezone adjustment. example:
@@ -522,27 +446,6 @@ char *gnome_gps_timespec_to_iso8601(timespec_t fixtime, char isotime[], size_t l
     return isotime;
 }
 
-#endif  /* #if GPSD_API_MAJOR_VERSION < 9 */
-
-#if ( GPSD_API_MAJOR_VERSION < 9 )
-
-void formatTime (double time) {
-    if (isnan(time)==0) {
-        if (gmt == true) {
-            (void) unix_to_iso8601(time, timeString,
-                                   (int) sizeof(timeString));
-        } else {
-            (void) gnome_gps_unix_to_iso8601(time, timeString,
-                                             (int) sizeof(timeString));
-        }
-    } else {
-        (void) strcpy(timeString,"n/a");
-    }
-    gtk_entry_set_text(entries[TIME], timeString );
-}
-
-#else  /* #if GPSD_API_MAJOR_VERSION < 9 */
-
 void formatTime (timespec_t time) {
     if (time.tv_sec > 0) {
         if (gmt == true) {
@@ -557,8 +460,6 @@ void formatTime (timespec_t time) {
     }
     gtk_entry_set_text(entries[TIME], timeString );
 }
-
-#endif  /* #if GPSD_API_MAJOR_VERSION < 9 */
 
 void formatAltitude (double altitude) {
     if (units != METRIC) {
@@ -628,7 +529,7 @@ static void resynch (void) {
                 perror (baseName);
             }
         }
-        gtk_progress_bar_set_text (progress, "Synch Failure: No gpsd connection!");
+        gtk_progress_bar_set_text (progress, "Sync Failure: No gpsd connection!");
         haveConnection = false;
     } else {
         /* If we got here, we're good to go. */
@@ -946,18 +847,6 @@ static GtkWidget *get_menubar_menu( GtkWidget  *window ) {
 void showData (void) {
     char tmpBuff[STRINGBUFFSIZE];   /* generic temporary holding. */
 
-/* #if GPSD_API_MAJOR_VERSION >= 7 */
-/*     if (showMessage == true) { */
-/*         int len; */
-/*         len = strlen (gpsdMessage); */
-/*         if ( '\r' == gpsdMessage[len - 1]) { */
-/*             /\* remove any trailing \r *\/ */
-/*             gpsdMessage[len - 1] = '\0'; */
-/*         } */
-/*         printf ("%s\n", gpsdMessage); */
-/*     } */
-/* #endif  /\* GPSD_API_MAJOR_VERSION >= 7 *\/ */
-
     /* Some things we ignore. */
     if (gpsdata.set & POLICY_SET) {
         gpsdata.set &= ~(POLICY_SET);
@@ -966,11 +855,7 @@ void showData (void) {
 
     /* Fill in receiver type. Detect missing gps receiver. */
     if (gpsdata.set & (DEVICE_SET)) {
-#if ( GPSD_API_MAJOR_VERSION < 9 )
-        if (gpsdata.dev.activated < 1.0) {
-#else  /* #if GPSD_API_MAJOR_VERSION < 9 */
         if (gpsdata.dev.activated.tv_sec < 0) {
-#endif  /* #if GPSD_API_MAJOR_VERSION < 9 */
             sendWatch ();
             gpsLost = true;
 
@@ -980,18 +865,11 @@ void showData (void) {
 
             if (verbose) {
                 (void) fprintf (stderr, "gps lost.\n");
-#if ( GPSD_API_MAJOR_VERSION < 9 )
-                (void) snprintf(tmpBuff, sizeof(tmpBuff),
-                                "driver = %s: subtype = %s: activated = %f",
-                                gpsdata.dev.driver, gpsdata.dev.subtype,
-                                gpsdata.dev.activated);
-#else  /* #if GPSD_API_MAJOR_VERSION < 9 */
                 (void) snprintf(tmpBuff, sizeof(tmpBuff),
                                 "driver = %s: subtype = %s%s: activated = %lld",
                                 gpsdata.dev.driver, gpsdata.dev.subtype,
                                 gpsdata.dev.subtype1,
                                 (long long)gpsdata.dev.activated.tv_sec);
-#endif  /* #if GPSD_API_MAJOR_VERSION < 9 */
                 (void) printf ("gps found.\n");
             }
             (void) snprintf (titleBuff, STRINGBUFFSIZE,
@@ -1005,16 +883,13 @@ void showData (void) {
              * of 0 length. OK, I'm paranoid, deal with it. */
             if (strlen (gpsdata.dev.driver)) {
                 (void) snprintf(tmpBuff, sizeof(tmpBuff), "%s GPS Found!", gpsdata.dev.driver);
-#if ( GPSD_API_MAJOR_VERSION < 9 )
                 (void) snprintf (titleBuff, STRINGBUFFSIZE,
                                  "%s: %s; %s",
                                  baseName, gpsdata.dev.driver, gpsdata.dev.subtype);
-#else  /* #if GPSD_API_MAJOR_VERSION < 9 */
                 (void) snprintf (titleBuff, STRINGBUFFSIZE,
                                  "%s: %s; %s %s",
                                  baseName, gpsdata.dev.driver,
                                  gpsdata.dev.subtype, gpsdata.dev.subtype1);
-#endif  /* #if GPSD_API_MAJOR_VERSION < 9 */
                 gtk_window_set_title (GTK_WINDOW (window), titleBuff);
             } else {
                 (void) strcpy (tmpBuff, "GPS Found!");
@@ -1022,18 +897,11 @@ void showData (void) {
             sendWatch ();
             gtk_progress_bar_set_text (progress, tmpBuff);
             if (verbose) {
-#if ( GPSD_API_MAJOR_VERSION < 9 )
-                (void) snprintf(tmpBuff, sizeof(tmpBuff),
-                                "driver = %s: subtype = %s: activated = %f",
-                                gpsdata.dev.driver, gpsdata.dev.subtype,
-                                gpsdata.dev.activated);
-#else  /* #if GPSD_API_MAJOR_VERSION < 9 */
                 (void) snprintf(tmpBuff, sizeof(tmpBuff),
                                 "driver = %s: subtype = %s%s: activated = %lld",
                                 gpsdata.dev.driver, gpsdata.dev.subtype,
                                 gpsdata.dev.subtype1,
                                 (long long)gpsdata.dev.activated.tv_sec);
-#endif  /* #if GPSD_API_MAJOR_VERSION < 9 */
                 (void) printf ("gps found.\n");
             }
         }
@@ -1058,18 +926,11 @@ void showData (void) {
             int i;
 
             for (i = 0 ; i < gpsdata.devices.ndevices; i++ ) {
-#if ( GPSD_API_MAJOR_VERSION < 9 )
-                (void) printf("Device no. %i: driver = %s: subtype (if any) = %s\n",
-                              i,
-                              gpsdata.devices.list[0].driver,
-                              gpsdata.devices.list[0].subtype);
-#else  /* #if GPSD_API_MAJOR_VERSION < 9 */
                 (void) printf("Device no. %i: driver = %s: subtype (if any) = %s%s\n",
                               i,
                               gpsdata.devices.list[0].driver,
                               gpsdata.devices.list[0].subtype,
                               gpsdata.devices.list[0].subtype1);
-#endif  /* #if GPSD_API_MAJOR_VERSION < 9 */
             }
         } else {
             (void) printf ("set 0x%08x, no devices reported.\n",
@@ -1091,11 +952,13 @@ void showData (void) {
                        gpsdata.version.proto_minor);
     }
 
-    if (gpsdata.set & SPEED_SET) {
+    if ((gpsdata.set & SPEED_SET)
+        && isfinite (gpsdata.fix.speed)) {
         formatSpeed (gpsdata.fix.speed);
     }
 
-    if (gpsdata.set & TRACK_SET) {
+    if ((gpsdata.set & TRACK_SET)
+        && isfinite (gpsdata.fix.track)) {
         formatTrack (gpsdata.fix.track);
     }
 
@@ -1141,12 +1004,6 @@ void showData (void) {
             (void) printf ("set 0x%08x, %s\n", (unsigned int) gpsdata.set,
                            banner);
         }
-        /* Something is fishy. If we've had satellites
-         * visible, and then lose them,
-         * gpsdata.satellites_visible still reports 1, but
-         * not 0. I think. This is to re-set it just in
-         * case. */
-        /* gpsdata.satellites_visible = 0; */
     }
 
     if (verbose) {
@@ -1155,135 +1012,89 @@ void showData (void) {
     }
 
     if (gpsdata.set & STATUS_SET) {
-        int mode = gpsdata.fix.mode;
-#if ( GPSD_API_MAJOR_VERSION < 10 )
-        int status = (gpsdata.status);
-#else  /* #if ( GPSD_API_MAJOR_VERSION < 10 ) */
         int status = (gpsdata.fix.status);
-#endif  /* #if ( GPSD_API_MAJOR_VERSION < 10 ) */
+        int mode = gpsdata.fix.mode;
 
-        switch (status) {
-#if ( GPSD_API_MAJOR_VERSION < 12 )
-        case STATUS_NO_FIX:
-            (void) strcpy (fixBuff, "No fix");
-#else  /* #if ( GPSD_API_MAJOR_VERSION < 12 ) */
-        case STATUS_UNK:
-            (void) strcpy (fixBuff, "Status unknown");
-#endif  /* #if ( GPSD_API_MAJOR_VERSION < 12 ) */
-            setColor (&NoFixColor);
-            break;
-
-#if ( GPSD_API_MAJOR_VERSION < 11 )
-        case STATUS_FIX:
-            (void) strcpy (fixBuff, "No fix");
-#else                        /* #if ( GPSD_API_MAJOR_VERSION < 11 ) */
-#if ( GPSD_API_MAJOR_VERSION < 12 )
-        case STATUS_FIX: //      1
-        case STATUS_DGPS_FIX: // 2       // with DGPS
-        case STATUS_RTK_FIX: //  3       // with RTK Fixed
-        case STATUS_RTK_FLT: //  4       // with RTK Float
-        case STATUS_DR: //       5       // with dead reckoning
-        case STATUS_GNSSDR: //   6       // with GNSS + dead reckoning
-        case STATUS_TIME: //     7       // time only (surveyed in, manual)
-// Note that STATUS_SIM and MODE_NO_FIX can go together.
-        case STATUS_SIM: //      8       // simulated
-/* yes, Precise Positioning Service (PPS)
- * Not to be confused with Pulse per Second (PPS)
- * PPS is the encrypted military P(Y)-code */
-        case STATUS_PPS_FIX: //  9
-#else                        /* #if ( GPSD_API_MAJOR_VERSION < 12 ) */
-        case STATUS_GPS:       //  1
-        case STATUS_DGPS:      //  2   // with DGPS
-        case STATUS_RTK_FIX:   //  3   // with RTK Fixed
-        case STATUS_RTK_FLT:   //  4   // with RTK Float
-        case STATUS_DR:        //  5   // with dead reckoning
-        case STATUS_GNSSDR:    //  6   // with GNSS + dead reckoning
-        case STATUS_TIME:      //  7   // time only (surveyed in, manual)
-// Note that STATUS_SIM and MODE_NO_FIX can go together.
-        case STATUS_SIM:       //  8   // simulated
-/* yes, Precise Positioning Service (PPS)
- * Not to be confused with Pulse per Second (PPS)
- * PPS is the encrypted military P(Y)-code */
-        case STATUS_PPS_FIX:    //  9
-#endif                       /* #if ( GPSD_API_MAJOR_VERSION < 12 ) */
-            (void) strcpy (fixBuff, "No fix");
-#endif  /* #if ( GPSD_API_MAJOR_VERSION < 11 ) */
-
-            if (gpsdata.set & MODE_SET) {
-
-                switch (mode) {
-                case MODE_NOT_SEEN:
-                    setColor (&NoFixColor);
-                    (void) strcpy (fixBuff, "Fix not yet seen");
-                    break;
-
-                case MODE_NO_FIX:
-                    setColor (&NoFixColor);
-                    (void) strcpy (fixBuff, "No fix yet");
-                    break;
-
-                case MODE_2D:
-                    setColor (&TwoDFixColor);
-                    if ((gpsdata.set & LATLON_SET)) {
-                        formatLat (gpsdata.fix.latitude);
-                        formatLong (gpsdata.fix.longitude);
-
-                        if (verbose) {
-                            (void) snprintf (fixBuff, STRINGBUFFSIZE,
-                                             "la %f, lo %f",
-                                             gpsdata.fix.latitude,
-                                             gpsdata.fix.longitude);
-                        }
-                    }
-                    break;
-
-                case MODE_3D:
-                    setColor (&ThreeDFixColor);
-                    if ((gpsdata.set & (LATLON_SET))) {
-                        formatLat (gpsdata.fix.latitude);
-                        formatLong (gpsdata.fix.longitude);
-                    }
-
-                    /* Only if we have a fix are the details of it
-                       useful. Altitude is only meaningful on a 3D
-                       fix. */
-                    if ((gpsdata.set & (ALTITUDE_SET))) {
-                        formatAltitude (gpsdata.fix.altitude);
-                        if (verbose) {
-
-                            (void) snprintf (fixBuff, STRINGBUFFSIZE,
-                                             "la %f, lo %f, %f",
-                                             gpsdata.fix.latitude,
-                                             gpsdata.fix.longitude,
-                                             gpsdata.fix.altitude);
-                        }
-                    }
-
-                    break;
-
-                default:
-                    (void) fprintf (stderr, "%s: Catastrophic error: Invalid mode %d. Status: %d.\n",
-                                    baseName,
-                                    mode,
-                                    status);
-                    setColor (&NoFixColor);
-                    return;
-                } /* fix.mode */
-            } /* MODE_SET */
-            break;
-
-        default:
-            (void) fprintf (stderr, "Catastrophic error: Invalid status %d, mode %d.\n",
-                            status, mode);
-            setColor (&NoFixColor);
-            return;
+        /* Condition the mode. */
+        if (0 > mode ||
+            SIZEMODESTRINGS <= mode) {
+            mode = 0;
         }
+
+        if (gpsdata.set & MODE_SET) {
+
+            switch (mode) {
+            case MODE_NOT_SEEN:
+                setColor (&NoFixColor);
+                (void) strcpy (fixBuff, "Fix not yet seen");
+                break;
+
+            case MODE_NO_FIX:
+                setColor (&NoFixColor);
+                (void) strcpy (fixBuff, "No fix yet");
+                break;
+
+            case MODE_2D:
+                setColor (&TwoDFixColor);
+                if ((gpsdata.set & LATLON_SET)
+                    && isfinite(gpsdata.fix.latitude)
+                    && isfinite(gpsdata.fix.longitude)) {
+                    formatLat (gpsdata.fix.latitude);
+                    formatLong (gpsdata.fix.longitude);
+
+                    if (verbose) {
+                        (void) snprintf (fixBuff, STRINGBUFFSIZE,
+                                         "la %f, lo %f",
+                                         gpsdata.fix.latitude,
+                                         gpsdata.fix.longitude);
+                    }
+                }
+                break;
+
+            case MODE_3D:
+                setColor (&ThreeDFixColor);
+                if ((gpsdata.set & (LATLON_SET))
+                    && isfinite(gpsdata.fix.latitude)
+                    && isfinite(gpsdata.fix.longitude)) {
+                    formatLat (gpsdata.fix.latitude);
+                    formatLong (gpsdata.fix.longitude);
+                }
+
+                /* Only if we have a fix are the details of it
+                   useful. Altitude is only meaningful on a 3D
+                   fix. */
+                if ((gpsdata.set & (ALTITUDE_SET))
+                    && isfinite(gpsdata.fix.latitude)
+                    && isfinite(gpsdata.fix.longitude)
+                    && isfinite(gpsdata.fix.altitude)) {
+                    formatAltitude (gpsdata.fix.altitude);
+                    if (verbose) {
+
+                        (void) snprintf (fixBuff, STRINGBUFFSIZE,
+                                         "la %f, lo %f, alt %f",
+                                         gpsdata.fix.latitude,
+                                         gpsdata.fix.longitude,
+                                         gpsdata.fix.altitude);
+                    }
+                }
+
+                break;
+
+            default:
+                (void) fprintf (stderr, "%s: Catastrophic error: Invalid mode %d, %s. Status: %d.\n",
+                                baseName,
+                                mode, modeString[mode],
+                                status);
+                setColor (&NoFixColor);
+                return;
+            } /* fix.mode */
+        } /* MODE_SET */
 
         if (verbose) {
             (void) printf ("set 0x%08x, %s, mode: |%s|, status |%s|, %s.\n",
                            (unsigned int) gpsdata.set,
                            timeString,
-                           getModeString (mode),
+                           modeString[mode],
                            getStatusString (status),
                            fixBuff);
         }
@@ -1291,7 +1102,7 @@ void showData (void) {
 }
 
 /* Build a pair of display widgets, a label followed by an entry
- * box. N.B.: This routine does not intialize the strings for the
+ * box. N.B.: This routine does not initialize the strings for the
  * widgets. Do that in the calling function with initStrings. */
 static void buildPair (gint index, gchar *labelText, GtkWidget *table,
                        gint left, gint top) {
@@ -1333,16 +1144,13 @@ gint gpsPoll (gpointer data) {
         return (true);
     }
 
-    /*  timeout in microseconds. .2 seconds. */
-    if (gps_waiting (&gpsdata, 200000) == true) {
+    /*  timeout in microseconds. .02 seconds. */
+    /* if (gps_waiting (&gpsdata, 20000) == true) { */
+    /* Trial: 5 seconds. From https://gpsd.io/gpsd-client-example-code.html */
+    if (gps_waiting (&gpsdata, 5000000) == true) {
         int ret;
 
-#if GPSD_API_MAJOR_VERSION >= 7 /* API change. */
-        /* ret = gps_read (&gpsdata, gpsdMessage, gpsdMessageLen); */
         ret = gps_read (&gpsdata, NULL, 0);
-#else  /* #if GPSD_API_MAJOR_VERSION >= 7 */
-        ret = gps_read (&gpsdata);
-#endif  /* #if GPSD_API_MAJOR_VERSION >= 7 */
         if (ret <= 1) {
             fprintf (stderr, "Gnome-gps: ret is %d. ", ret);
             perror (NULL);
@@ -1671,12 +1479,7 @@ int main ( int   argc,
     gtk_init (&argc, &argv);
 
     /* for option processing. */
-#if GPSD_API_MAJOR_VERSION >= 7 /* API change. */
-    /* char *optstring = "d:hjkmp:uvV"; */
     char *optstring = "d:hkmp:uvV";
-#else  /* #if GPSD_API_MAJOR_VERSION >= 7 */
-    char *optstring = "d:kmp:uvV";
-#endif  /* #if GPSD_API_MAJOR_VERSION >= 7 */
     int opt = 0;
 
     while (( opt = getopt (argc, argv, optstring)) != -1) {
@@ -1704,13 +1507,6 @@ int main ( int   argc,
                 return (-2);
             }
             break;
-
-/* #if GPSD_API_MAJOR_VERSION >= 7 /\* API change. *\/ */
-/*         case 'j': */
-/*             showMessage = true; */
-/*             gpsdMessageLen = GPS_JSON_RESPONSE_MAX; */
-/*             break; */
-/* #endif  /\* #if GPSD_API_MAJOR_VERSION >= 7 *\/ */
 
         case US:
             units = opt;
@@ -1740,16 +1536,10 @@ int main ( int   argc,
         case 'h':
 
         default:        /* '?' */
-#if GPSD_API_MAJOR_VERSION >= 7 /* API change. */
             (void) fprintf(stderr,
                            /* "Usage: %s [-d d] [-h] [-j] [-m] [-k] [-p port] [-u] [-v] [-V] [host]\n", */
                            "Usage: %s [-d d] [-h] [-m] [-k] [-p port] [-u] [-v] [-V] [host]\n",
                            baseName);
-#else  /* #if GPSD_API_MAJOR_VERSION >= 7 */
-            (void) fprintf(stderr,
-                           "Usage: %s [-d d] [-m] [-k] [-p port] [-u] [-v] [-V] [host]\n",
-                           baseName);
-#endif  /* #if GPSD_API_MAJOR_VERSION >= 7 */
             return(-2);
         }
     }
@@ -1776,7 +1566,7 @@ int main ( int   argc,
 
         /* When the window is given the "delete_event" signal (this is
          * given by the window manager, usually by the "close" option,
-         * or on the titlebar), we ask it to call the delete_event ()
+         * or on the title bar), we ask it to call the delete_event ()
          * function as defined above. */
         g_signal_connect (G_OBJECT (window), "delete_event",
                           G_CALLBACK (delete_event), (gpointer) "Done");
