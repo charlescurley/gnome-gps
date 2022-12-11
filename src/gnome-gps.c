@@ -1365,7 +1365,9 @@ int main ( int   argc,
 
     (void) printf ("This program is released under the same terms as gpsd itself, i.e.\n");
     (void) printf ("under the BSD License. See the file Copying in the gpsd distribution.\n");
-    (void) printf ("libgps API version %d.%d.\n", GPSD_API_MAJOR_VERSION, GPSD_API_MINOR_VERSION);
+    (void) printf ("Version %s, compiled for libgps API version %d.%d.\n",
+                   versionString,
+                   GPSD_API_MAJOR_VERSION, GPSD_API_MINOR_VERSION);
 
     (void) printf ("\nThis program comes with ABSOLUTELY NO WARRANTY.\n");
 
@@ -1479,7 +1481,7 @@ int main ( int   argc,
     gtk_init (&argc, &argv);
 
     /* for option processing. */
-    char *optstring = "d:hkmp:uvV";
+    char *optstring = "d:hkmp:uv";
     int opt = 0;
 
     while (( opt = getopt (argc, argv, optstring)) != -1) {
@@ -1528,17 +1530,11 @@ int main ( int   argc,
             verbose = true;
             break;
 
-        case 'V':       /* N.b.: falls through to the default case! */
-            (void) fprintf (stderr,
-                            "Version %s, compiled for gpsd API version %d.%d.\n",
-                            versionString, GPSD_API_MAJOR_VERSION,
-                            GPSD_API_MINOR_VERSION);
-        case 'h':
+        case 'h':               /* Falls through to print out the usage message. */
 
-        default:        /* '?' */
+        default:                /* '?' */
             (void) fprintf(stderr,
-                           /* "Usage: %s [-d d] [-h] [-j] [-m] [-k] [-p port] [-u] [-v] [-V] [host]\n", */
-                           "Usage: %s [-d d] [-h] [-m] [-k] [-p port] [-u] [-v] [-V] [host]\n",
+                           "Usage: %s [-d d] [-h] [-m] [-k] [-p port] [-u] [-v] [host]\n",
                            baseName);
             return(-2);
         }
