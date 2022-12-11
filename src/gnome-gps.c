@@ -1151,7 +1151,7 @@ gint gpsPoll (gpointer data) {
         int ret;
 
         ret = gps_read (&gpsdata, NULL, 0);
-        if (ret <= 1) {
+        if (ret == -1) {
             fprintf (stderr, "Gnome-gps: ret is %d. ", ret);
             perror (NULL);
             resynch ();
