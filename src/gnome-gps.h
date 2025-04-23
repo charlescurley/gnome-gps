@@ -86,9 +86,9 @@ int main ( int argc, char *argv[] );
 /* end prototypes. */
 
 
-/* Table layout of the main window. */
-#define ROWS 3
-#define COLS 4
+/* Table layout of the main window. GG for GnomeGps because gps.h uses ROWS. */
+#define GGROWS 3
+#define GGCOLS 4
 
 /* Display factors for the widgets in the table. */
 #define XOPTIONS ((GtkAttachOptions) (GTK_FILL|GTK_EXPAND|GTK_SHRINK))

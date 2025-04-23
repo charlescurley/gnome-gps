@@ -43,6 +43,13 @@
 #define VERSIONSET
 #endif  /* 12.0 */
 
+/* This is for the version on Debian 14, trixie & up, gpsd version 3.25.1~dev, libgps version ??. */
+#if ( GPSD_API_MAJOR_VERSION == 14 && GPSD_API_MINOR_VERSION == 0 )
+#warning Setting up for API version 14.0
+#define VERSION1400
+#define VERSIONSET
+#endif  /* 14.0 */
+
 #ifndef VERSIONSET
 #error Unknown gps API protocol version; see gps.h for the current value of GPSD_API_MAJOR_VERSION
 #endif  /* Unknown */
@@ -1600,17 +1607,17 @@ int main ( int   argc,
     /* Build the table we'll stuff everything into. Heterogeneous
      * layout, please. */
     {
-        table = gtk_table_new( ROWS, COLS, FALSE );
+        table = gtk_table_new( GGROWS, GGCOLS, FALSE );
 
         /* Put the table in the vbox */
         gtk_container_add (GTK_CONTAINER (vbox), table);
     }
 
     /* Build pairs of widgets: a label, followed by a text entry
-     * box. The table size is ROWS x COLS, based on a count of widgets
-     * in the row. Co-ordinates here are for pairs, so the column
-     * numbers are half what they would be for widgets. 0,0 is the
-     * upper left, as with widgets. */
+     * box. The table size is GGROWS x GGCOLS, based on a count of
+     * widgets in the row. Co-ordinates here are for pairs, so the
+     * column numbers are half what they would be for widgets. 0,0 is
+     * the upper left, as with widgets. */
 
     buildPair (LAT,     "Lat",     table, 0, 0);
     buildPair (LONG,    "Long",    table, 1, 0);
