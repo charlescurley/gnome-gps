@@ -20,10 +20,10 @@ EXECDIR=/usr/local/bin/
 SHARE=/usr/share/
 
 gnome-gps: $(PRODUCTOBJS) gnome-gps.h icon.image.h
-	gcc -Wall -O2 $(PRODUCTOBJS) -o gnome-gps $(LINPUTS)
+	gcc -O2 $(PRODUCTOBJS) -o gnome-gps $(LINPUTS)
 
 debug: $(DEBUGOBJS) gnome-gps.h icon.image.h debug.h
-	gcc -Wall $(DEBUGOBJS) -o debug $(LINPUTS)
+	gcc $(DEBUGOBJS) -o debug $(LINPUTS)
 
 
 gnome-gps.o: gnome-gps.c gnome-gps.h icon.image.h
