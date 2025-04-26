@@ -1667,8 +1667,9 @@ int main ( int   argc,
 
     resynch ();
 
-    /* Now set up our idle function, in milliseconds. */
-    tag = g_timeout_add ((guint32)300, gpsPoll, NULL);
+    /* Now set up our idle function, in milliseconds. 300 is too long,
+     * so some day this may require further trimming. */
+    tag = g_timeout_add ((guint32)100, gpsPoll, NULL);
 
     /* All GTK applications must have a gtk_main(). Control ends here
      * and waits for an event to occur (like a key press or mouse
