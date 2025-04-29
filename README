@@ -30,6 +30,28 @@ There isn't much to it, so these notes should suffice:
 
 * For automotive use, try a fairly large font, e.g. 17 to 25 points.
 
+Command line options. These you may also set and save in the
+GUI. These override the defaults and saved values.
+
+-d Set the format of the latitude and longitude display:
+
+   * d: Degrees and decimal, ddd.dddddd
+
+   * m: Degrees and minutes, ddd mm.mmmm
+
+   * s: Degrees, minutes, seconds, ddd mm ss.ss
+
+-h Print a terse help message.
+
+-k Speed in knots
+
+-m Metric measures
+
+-p Port (default is 2947)
+
+-u US measures
+
+-v Verbose (print to stdout)
 
 To compile, you should get everything you need with:
 
