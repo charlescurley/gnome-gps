@@ -1549,7 +1549,7 @@ int main ( int   argc,
 
         default:                /* '?' */
             (void) fprintf(stderr,
-                           "Usage: %s [-d d] [-h] [-m] [-k] [-p port] [-u] [-v] [host]\n",
+                           "Usage: %s [-d d] [-g] [-h] [-l] [-m] [-k] [-p port] [-u] [-v] [host]\n",
                            baseName);
             return(-2);
         }
