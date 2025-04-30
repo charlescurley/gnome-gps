@@ -1488,7 +1488,7 @@ int main ( int   argc,
     gtk_init (&argc, &argv);
 
     /* for option processing. */
-    char *optstring = "d:hkmp:uv";
+    char *optstring = "d:ghlkmp:uv";
     int opt = 0;
 
     while (( opt = getopt (argc, argv, optstring)) != -1) {
@@ -1527,6 +1527,14 @@ int main ( int   argc,
 
         case METRIC:
             units = opt;
+            break;
+
+        case 'g':
+            gmt = true;
+            break;
+
+        case 'l':
+            gmt = false;
             break;
 
         case 'p':
