@@ -974,6 +974,8 @@ void showData (void) {
     if (gpsdata.set & SATELLITE_SET) {
         gchar banner[STRINGBUFFSIZE];
 
+        gpsdata.set &= ~(SATELLITE_SET);
+
         /* Guard against division of or by 0. */
         if (gpsdata.satellites_visible > 0 && gpsdata.satellites_used > 0) {
             /* We have at least one satellite visible and at least one
@@ -1011,6 +1013,7 @@ void showData (void) {
             (void) printf ("set 0x%08x, %s\n", (unsigned int) gpsdata.set,
                            banner);
         }
+        return;
     }
 
     if (verbose) {
