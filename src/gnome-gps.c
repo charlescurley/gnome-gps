@@ -1013,7 +1013,7 @@ void showData (void) {
         }
         gpsdata.set &= ~(SATELLITE_SET);
         return;
-    }
+    } /* SATELLITE_SET */
 
     if (verbose) {
         printf ("Mask is %s.\n",
