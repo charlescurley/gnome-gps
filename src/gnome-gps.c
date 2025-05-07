@@ -918,11 +918,11 @@ void showData (void) {
                            (unsigned int) gpsdata.set, tmpBuff);
         }
 
+        gpsdata.set &= ~((DEVICE_SET));
         return;
     }
 
     if ((gpsdata.set & DEVICELIST_SET) && verbose) {
-        gpsdata.set &= ~(DEVICELIST_SET);
         printf ("set 0x%08x, %d device%s found.\n",
                 (int) gpsdata.set,
                 gpsdata.devices.ndevices,
@@ -943,11 +943,13 @@ void showData (void) {
             (void) printf ("set 0x%08x, no devices reported.\n",
                            (unsigned int) gpsdata.set);
         }
+        gpsdata.set &= ~(DEVICELIST_SET);
         return;
     }
 
     if (gpsdata.set & TIME_SET) {
         formatTime (gpsdata.fix.time);
+        gpsdata.set &= ~(TIME_SET);
     }
 
     if (gpsdata.set & VERSION_SET && (verbose != false)) {
@@ -957,16 +959,19 @@ void showData (void) {
                        gpsdata.version.rev,
                        gpsdata.version.proto_major,
                        gpsdata.version.proto_minor);
+        gpsdata.set &= ~(VERSION_SET);
     }
 
     if ((gpsdata.set & SPEED_SET)
         && isfinite (gpsdata.fix.speed)) {
         formatSpeed (gpsdata.fix.speed);
+        gpsdata.set &= ~(SPEED_SET);
     }
 
     if ((gpsdata.set & TRACK_SET)
         && isfinite (gpsdata.fix.track)) {
         formatTrack (gpsdata.fix.track);
+        gpsdata.set &= ~(TRACK_SET);
     }
 
     /* A nice and unusual use of a progress bar, if I say so
@@ -1107,6 +1112,7 @@ void showData (void) {
                            getStatusString (status),
                            fixBuff);
         }
+        gpsdata.set &= ~(STATUS_SET);
     } /* STATUS_SET */
 }
 
