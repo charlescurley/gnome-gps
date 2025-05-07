@@ -960,6 +960,7 @@ void showData (void) {
                        gpsdata.version.proto_major,
                        gpsdata.version.proto_minor);
         gpsdata.set &= ~(VERSION_SET);
+        return;
     }
 
     if ((gpsdata.set & SPEED_SET)
