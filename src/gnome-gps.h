@@ -4,7 +4,7 @@
  * itself, i.e under the BSD License. See the file COPYING in the
  * distribution. This program comes with ABSOLUTELY NO WARRANTY. */
 
-char *versionString = "2.0 rc1";
+char *versionString = "2.0";
 
 #include <gtk/gtk.h>            /* "apt install libgtk2.0-dev" on
                                  * debian/ubuntu. */
