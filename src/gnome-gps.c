@@ -370,8 +370,8 @@ void formatTrack (double track) {
 
     (void) snprintf (trackString, STRINGBUFFSIZE,
                      "%03.0f° %s %s", track,
-                     magnetic ? "Magnetic" : "True",
-                     dirString);
+                     dirString,
+                     magnetic ? "Magnetic" : "True");
     gtk_entry_set_text(entries[TRACK], trackString );
 }
 
