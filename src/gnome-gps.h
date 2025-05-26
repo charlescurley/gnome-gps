@@ -58,6 +58,9 @@ static void setUnits( gpointer   callback_data,
 static void setGmt( gpointer   callback_data,
                     guint      callback_action,
                     GtkWidget *menu_item );
+static void setMag( gpointer   callback_data,
+                    guint      callback_action,
+                    GtkWidget *menu_item );
 static void setDegrees( gpointer   callback_data,
                         guint      callback_action,
                         GtkWidget *menu_item );

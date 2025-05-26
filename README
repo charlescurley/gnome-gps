@@ -41,6 +41,8 @@ GUI. These override the defaults and saved values.
 
    * s: Degrees, minutes, seconds, ddd mm ss.ss
 
+-e Track/heading will be reported as magnetic
+
 -h Print a terse help message.
 
 -k Speed in knots
@@ -48,6 +50,8 @@ GUI. These override the defaults and saved values.
 -m Metric measures
 
 -p Port (default is 2947)
+
+-e Track/heading will be reported as true
 
 -u US measures
 

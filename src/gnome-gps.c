@@ -74,7 +74,7 @@
 
 /* Settings that go into the configuration file. */
 typedef struct {
-    gchar *port, *host, *angle, *units, *font, *gmt;
+    gchar *port, *host, *angle, *units, *font, *gmt, *magnetic;
 } settings;
 
 /* Have we detected the loss of the GPS receiver? If so, when we get a
@@ -120,6 +120,7 @@ enum angleSpec {DEGREES = 'd', MINUTES = 'm', SECONDS = 's' } angleSpec;
 char angle = DEGREES;           /* How to display the angles in lat
                                  * and long. */
 gboolean gmt = true;            /* Display time in GMT or local? */
+gboolean magnetic = false;      /* Display true or magnetic heading? */
 
 gchar *fixBuffInit = "No fix seen yet";
 gchar *timeStringInit = "No time yet";
@@ -368,7 +369,9 @@ void formatTrack (double track) {
     }
 
     (void) snprintf (trackString, STRINGBUFFSIZE,
-                     "%03.0f° true %s", track, dirString);
+                     "%03.0f° %s %s", track,
+                     magnetic ? "Magnetic" : "True",
+                     dirString);
     gtk_entry_set_text(entries[TRACK], trackString );
 }
 
@@ -711,6 +714,9 @@ static GtkItemFactoryEntry menu_items[] = {
     { "/Units/Sep",                  NULL,        NULL,       0, "<Separator>"          },
     { "/Units/_Gmt",            "<ctrl>g",      setGmt,    true, "<RadioItem>"          },
     { "/Units/_Local",          "<ctrl>l",      setGmt,   false, "/Units/Gmt"           },
+    { "/Units/Sep",                  NULL,        NULL,       0, "<Separator>"          },
+    { "/Units/_True",           "<ctrl>t",      setMag,   false, "<RadioItem>"          },
+    { "/Units/Magn_etic",       "<ctrl>e",      setMag,    true, "/Units/True"          },
     { "/_Degrees",                   NULL,        NULL,       0, "<Branch>" },
     { "/Degrees/_ddd.dddddd",   "<ctrl>d",  setDegrees, DEGREES, "<RadioItem>"          },
     { "/Degrees/ddd _mm.mmmm",  "<ctrl>n",  setDegrees, MINUTES, "/Degrees/ddd.dddddd"  },
@@ -735,6 +741,11 @@ static void setGmt( gpointer   callback_data,
     gmt = callback_action;
 }
 
+static void setMag( gpointer   callback_data,
+                    guint      callback_action,
+                    GtkWidget *menu_item ) {
+    magnetic = callback_action;
+}
 
 static void setDegrees( gpointer   callback_data,
                         guint      callback_action,
@@ -969,10 +980,18 @@ void showData (void) {
         gpsdata.set &= ~(SPEED_SET);
     }
 
-    if ((gpsdata.set & TRACK_SET)
-        && isfinite (gpsdata.fix.track)) {
-        formatTrack (gpsdata.fix.track);
-        gpsdata.set &= ~(TRACK_SET);
+    if (magnetic == false) {
+        if ((gpsdata.set & TRACK_SET)
+            && isfinite (gpsdata.fix.track)) {
+            formatTrack (gpsdata.fix.track);
+            gpsdata.set &= ~(TRACK_SET);
+        }
+    } else {
+        if ((gpsdata.set & MAGNETIC_TRACK_SET)
+            && isfinite (gpsdata.fix.magnetic_track)) {
+            formatTrack (gpsdata.fix.magnetic_track);
+            gpsdata.set &= ~(MAGNETIC_TRACK_SET);
+        }
     }
 
     /* A nice and unusual use of a progress bar, if I say so
@@ -1207,6 +1226,9 @@ gchar *saveKeyFile (GKeyFile *keyFile) {
     sandbox [0] = gmt ? 't' : 'f';
     g_key_file_set_value (keyFile, baseName, "gmt", sandbox);
 
+    sandbox [0] = magnetic ? 't' : 'f';
+    g_key_file_set_value (keyFile, baseName, "magnetic", sandbox);
+
     /* Now we jump through some hoops to get the existing font so we
      * save it. We use one of the text entry widgets because their
      * fonts are set by this dialog. */
@@ -1331,6 +1353,27 @@ void setActiveGmt (void) {
     case false:
         gtk_check_menu_item_set_active(
             GTK_CHECK_MENU_ITEM (gtk_item_factory_get_item (item_factory, "/Units/Local")),
+            TRUE);
+        break;
+    }
+}
+
+void setActiveMagnetic (void) {
+    switch (magnetic) {
+
+    /* Use the default to silently handle errors and fall through
+     * to the substitute case. */
+    default:
+        magnetic = true;
+    case true:
+        gtk_check_menu_item_set_active(
+            GTK_CHECK_MENU_ITEM (gtk_item_factory_get_item (item_factory, "/Units/Magnetic")),
+            TRUE);
+        break;
+
+    case false:
+        gtk_check_menu_item_set_active(
+            GTK_CHECK_MENU_ITEM (gtk_item_factory_get_item (item_factory, "/Units/True")),
             TRUE);
         break;
     }
@@ -1489,6 +1532,12 @@ int main ( int   argc,
                 gmt = (conf->gmt[0] == 't') ? true : false;
             }
 
+            conf->magnetic = NULL;
+            conf->magnetic = g_key_file_get_string ( keyFile, baseName,
+                                                "magnetic", NULL);
+            if (conf->magnetic != NULL && strlen (conf->units) > 0) {
+                magnetic = (conf->magnetic[0] == 't') ? true : false;
+            }
         }
     }
 
@@ -1497,7 +1546,7 @@ int main ( int   argc,
     gtk_init (&argc, &argv);
 
     /* for option processing. */
-    char *optstring = "d:ghlkmp:uv";
+    char *optstring = "d:eghlkmp:tuv";
     int opt = 0;
 
     while (( opt = getopt (argc, argv, optstring)) != -1) {
@@ -1546,6 +1595,14 @@ int main ( int   argc,
             gmt = false;
             break;
 
+        case 'e':
+            magnetic = true;
+            break;
+
+        case 't':
+            magnetic = false;
+            break;
+
         case 'p':
             (void) strncpy (hostPort, optarg, STRINGBUFFSIZE-1);
             break;
@@ -1558,7 +1615,7 @@ int main ( int   argc,
 
         default:                /* '?' */
             (void) fprintf(stderr,
-                           "Usage: %s [-d d] [-g] [-h] [-l] [-m] [-k] [-p port] [-u] [-v] [host]\n",
+                           "Usage: %s [-d d] [-e] [-g] [-h] [-l] [-m] [-k] [-p port] [-t] [-u] [-v] [host]\n",
                            baseName);
             return(-2);
         }
@@ -1676,6 +1733,7 @@ int main ( int   argc,
     setActiveAngle ();
     setActiveUnits ();
     setActiveGmt ();
+    setActiveMagnetic ();
 
     /* (void) printf ("Host is %s, port is %s\n", host, port); */
 
