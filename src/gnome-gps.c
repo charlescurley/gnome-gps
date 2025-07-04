@@ -1187,7 +1187,9 @@ gint gpsPoll (gpointer data) {
 
         ret = gps_read (&gpsdata, NULL, 0);
         if (ret == -1) {
-            fprintf (stderr, "Gnome-gps: bad read from gps_read(), %d. ", ret);
+            if (verbose) {
+                fprintf (stderr, "Gnome-gps: bad read from gps_read(), %d. ", ret);
+            }
             perror (NULL);
             resynch ();
         } else {
