@@ -43,12 +43,19 @@
 #define VERSIONSET
 #endif  /* 12.0 */
 
-/* This is for the version on Debian 14, trixie & up, gpsd version 3.25.1~dev, libgps version ??. */
+/* This is for the version on Debian 13, trixie & up, gpsd version 3.25.1~dev, libgps version ??. */
 #if ( GPSD_API_MAJOR_VERSION == 14 && GPSD_API_MINOR_VERSION == 0 )
 #warning Setting up for API version 14.0
 #define VERSION1400
 #define VERSIONSET
 #endif  /* 14.0 */
+
+/* This is for the version on Debian 13, trixie & up, gpsd version 3.27, libgps version ??. */
+#if ( GPSD_API_MAJOR_VERSION == 16 && GPSD_API_MINOR_VERSION == 0 )
+#warning Setting up for API version 16.0
+#define VERSION1600
+#define VERSIONSET
+#endif  /* 16.0 */
 
 #ifndef VERSIONSET
 #error Unknown gps API protocol version; see gps.h for the current value of GPSD_API_MAJOR_VERSION
