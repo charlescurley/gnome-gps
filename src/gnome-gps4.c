@@ -6,12 +6,6 @@
  * itself, i.e under the BSD License. See the file COPYING in the
  * distribution. This program comes with ABSOLUTELY NO WARRANTY. */
 
-/* Prerequisites. Any fairly recent version should do.
-
-   apt install gcc libgtk-4-dev make
-
-*/
-
 #include <gtk/gtk.h>
 
 static void
