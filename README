@@ -59,7 +59,9 @@ GUI. These override the defaults and saved values.
 
 To compile, you should get everything you need with:
 
-apt install gnome-common libgps-dev libgtk2.0-dev
+apt install gcc libgps-dev libgtk2.0-dev make
+
+Or substitute libgtk-4-dev for GTK 4.
 
 Otherwise, you need:
 
