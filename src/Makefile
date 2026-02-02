@@ -8,11 +8,14 @@
 # Specify libraries, header files, etc.
 CINPUTS = `pkg-config --cflags gtk+-2.0 libgps`
 LINPUTS = `pkg-config --libs   gtk+-2.0 libgps`
+CINPUTS4 = `pkg-config --cflags gtk4 libgps`
+LINPUTS4 = `pkg-config --libs   gtk4 libgps`
 
 DEBUGFLAGS = -ggdb -Wall -c -Wno-deprecated-declarations -DDEBUG -Wno-format-truncation $(CFLAGS)
 DEBUGOBJS = gnome-gps.do icon.image.do debug.do
 PRODUCTFLAGS = -Wall -c -Wno-deprecated-declarations -Wno-format-truncation $(CFLAGS)
 PRODUCTOBJS = gnome-gps.o icon.image.o
+PRODUCTOBJS4 = gnome-gps4.o
 
 # Anyone got a better place to put this?
 SHAREICONS=/usr/local/share/icons/hicolor/48x48/apps/
@@ -22,12 +25,18 @@ SHARE=/usr/share/
 gnome-gps: $(PRODUCTOBJS) gnome-gps.h icon.image.h
 	gcc -O2 $(PRODUCTOBJS) -o gnome-gps $(LINPUTS)
 
+gnome-gps4: $(PRODUCTOBJS4)
+	gcc -O2 $(PRODUCTOBJS4) -o gnome-gps $(LINPUTS4)
+
 debug: $(DEBUGOBJS) gnome-gps.h icon.image.h debug.h
 	gcc $(DEBUGOBJS) -o debug $(LINPUTS)
 
 
 gnome-gps.o: gnome-gps.c gnome-gps.h icon.image.h
 	gcc -O2 -o gnome-gps.o $(PRODUCTFLAGS) gnome-gps.c $(CINPUTS)
+
+gnome-gps4.o: gnome-gps4.c
+	gcc -O2 -o gnome-gps4.o $(PRODUCTFLAGS) gnome-gps4.c $(CINPUTS4)
 
 icon.image.o: icon.image.c icon.image.h
 	gcc -O2 -o icon.image.o $(PRODUCTFLAGS) icon.image.c $(CINPUTS)
