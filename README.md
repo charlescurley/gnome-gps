@@ -25,8 +25,8 @@ There isn't much to it, so these notes should suffice:
   progress bar, where the progress bar shows the ratio of the two.
 
 * You can change how some of the data are displayed, e.g. speed in
-  miles per hour, knots or kilometers per hour, etc. You can then save
-  these settings.
+  miles per hour, knots or kilometers per hour; magnetic vs. true;
+  local vs. GMT, etc. You can then save these settings.
 
 * Menu functions have accelerator (shortcut) keys.
 
