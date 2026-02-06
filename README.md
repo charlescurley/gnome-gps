@@ -1,0 +1,79 @@
+This program is a straightforward gps monitor program using the GTK+
+windowing system.
+
+![gnome-gps program](pix/Screenshot-gnome-gps: a simple GTK+ GPS monitor-1.png)
+
+It is copyright 2009 to the date of the most recent modification
+Charles Curley, [http://www.charlescurley.com/](http://www.charlescurley.com/)
+
+This program is released under the same terms as gpsd itself, i.e.
+under the BSD License. See the file Copying in the gpsd distribution.
+
+There isn't much to it, so these notes should suffice:
+
+* The background changes color according to the quality of the fix.
+
+  * Grey: No GPSD connection.
+
+  * Red: No fix.
+
+  * Yellow: Two dimensional fix, i.e. altitude is invalid.
+
+  * Green: Three dimensional fix.
+
+* The number of satellites seen and used in fixes is shown in a
+  progress bar, where the progress bar shows the ratio of the two.
+
+* You can change how some of the data are displayed, e.g. speed in
+  miles per hour, knots or kilometers per hour, etc. You can then save
+  these settings.
+
+* Menu functions have accelerator (shortcut) keys.
+
+* For automotive use, try a fairly large font, e.g. 17 to 25 points.
+
+Command line options. These you may also set and save in the
+GUI. These override the defaults and saved values.
+
+-d Set the format of the latitude and longitude display:
+
+   * d: Degrees and decimal, ddd.dddddd
+
+   * m: Degrees and minutes, ddd mm.mmmm
+
+   * s: Degrees, minutes, seconds, ddd mm ss.ss
+
+-e Track/heading will be reported as magnetic
+
+-h Print a terse help message.
+
+-k Speed in knots
+
+-m Metric measures
+
+-p Port (default is 2947)
+
+-e Track/heading will be reported as true
+
+-u US measures
+
+-v Verbose (print to stdout)
+
+To compile, you should get everything you need with:
+
+apt install gcc libgps-dev libgtk2.0-dev make
+
+Otherwise, you need:
+
+apt install gcc make libgtk2.0-dev libgps-dev
+
+except on debian squeeze, where you may need:
+
+apt -t squeeze-backports install gcc make libgtk2.0-dev
+
+There is a make target "validate". This is set up to run astyle so you
+can have a suitable style in your contributions (hint, hint...). You
+will need astyle if you don't already have it. It will also validate
+the desktop file, which requires the package desktop-file-utils.
+
+apt install astyle desktop-file-utils
