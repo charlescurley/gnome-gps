@@ -1,7 +1,7 @@
 This program is a straightforward gps monitor program using the GTK+
 windowing system.
 
-![gnome-gps program](pix/Screenshot-gnome-gps: a simple GTK+ GPS monitor-1.png)
+![gnome-gps program](pix/gnome-gps.1.png)
 
 It is copyright 2009 to the date of the most recent modification
 Charles Curley, [http://www.charlescurley.com/](http://www.charlescurley.com/)
