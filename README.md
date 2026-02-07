@@ -61,19 +61,27 @@ GUI. These override the defaults and saved values.
 
 To compile, you should get everything you need with:
 
+```shell
 apt install gcc libgps-dev libgtk2.0-dev make
+```
 
 Otherwise, you need:
 
+```shell
 apt install gcc make libgtk2.0-dev libgps-dev
+```
 
 except on debian squeeze, where you may need:
 
+```shell
 apt -t squeeze-backports install gcc make libgtk2.0-dev
+```
 
 There is a make target "validate". This is set up to run astyle so you
 can have a suitable style in your contributions (hint, hint...). You
 will need astyle if you don't already have it. It will also validate
 the desktop file, which requires the package desktop-file-utils.
 
+```shell
 apt install astyle desktop-file-utils
+```
