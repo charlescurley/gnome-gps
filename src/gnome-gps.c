@@ -599,6 +599,17 @@ static void hostCancelCallback (GtkWidget *widget,
     gtk_window_destroy (GTK_WINDOW (hostDialogBox));
 }
 
+/* When the host/port window goes away -- via OK, Cancel, or the window
+ * manager -- forget its widgets so the single-instance guard in
+ * hostAction () lets a later request build a fresh dialog instead of
+ * presenting (or touching) freed pointers. */
+static void hostDestroyCallback (GtkWidget *widget,
+                                 gpointer   data) {
+    hostDialogBox = NULL;
+    hostEntry = NULL;
+    portEntry = NULL;
+}
+
 /* Build one right-aligned label plus an editable entry row in the
  * dialog's grid, and remember the entry via *entry. */
 static void hostPair (GtkWidget *grid, gint row, const gchar *labelText,
@@ -627,12 +638,21 @@ static void hostAction( GSimpleAction *action,
     GtkWidget *okButton;
     GtkWidget *cancelButton;
 
+    /* Only one host/port dialog at a time: re-present the existing one. */
+    if (hostDialogBox != NULL) {
+        gtk_window_present (GTK_WINDOW (hostDialogBox));
+        return;
+    }
+
     /* GTK4 has no gtk_dialog_run (); build a plain modal window and
      * drive it with the button/activate callbacks. */
     hostDialogBox = gtk_window_new ();
     gtk_window_set_title (GTK_WINDOW (hostDialogBox), "Host");
     gtk_window_set_transient_for (GTK_WINDOW (hostDialogBox), GTK_WINDOW (window));
     gtk_window_set_modal (GTK_WINDOW (hostDialogBox), TRUE);
+    gtk_window_set_destroy_with_parent (GTK_WINDOW (hostDialogBox), TRUE);
+    g_signal_connect (hostDialogBox, "destroy",
+                      G_CALLBACK (hostDestroyCallback), NULL);
 
     box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 5);
     gtk_widget_set_margin_start  (box, 5);
@@ -749,6 +769,24 @@ static void quitAction( GSimpleAction *action,
     gtk_window_close (GTK_WINDOW (window));
 }
 
+/* CSS-escape a string for use inside a double-quoted CSS string
+ * (escape backslash and double-quote). The caller frees the result.
+ * Without this a font family name containing a quote or backslash --
+ * e.g. from a hand-edited config -- could break out of, or inject
+ * into, the generated font CSS. */
+static gchar *cssEscapeString (const char *s) {
+    GString *out = g_string_new (NULL);
+
+    for (; s != NULL && *s != '\0'; s++) {
+        if (*s == '\\' || *s == '"') {
+            g_string_append_c (out, '\\');
+        }
+        g_string_append_c (out, *s);
+    }
+
+    return g_string_free (out, FALSE);
+}
+
 /* Build a CSS fragment that sets the display font, scoped under the
  * permanent .gnome-gps-ui class so the host dialog keeps the default
  * font. The caller frees the result. */
@@ -758,6 +796,7 @@ static gchar *pangoDescToCss (PangoFontDescription *desc) {
     gboolean absolute = pango_font_description_get_size_is_absolute (desc);
     PangoWeight weight = pango_font_description_get_weight (desc);
     PangoStyle pstyle = pango_font_description_get_style (desc);
+    gchar *familyCss;
     gchar *sizeCss;
     gchar *css;
 
@@ -769,17 +808,19 @@ static gchar *pangoDescToCss (PangoFontDescription *desc) {
         sizeCss = g_strdup_printf ("font-size: %dpt;", size / PANGO_SCALE);
     }
 
+    familyCss = cssEscapeString (family != NULL ? family : "Sans");
     css = g_strdup_printf (
               ".gnome-gps-ui entry, .gnome-gps-ui entry > text,"
               " .gnome-gps-ui progressbar > text {"
               " font-family: \"%s\"; %s"
               " font-weight: %d; font-style: %s; }",
-              family ? family : "Sans",
+              familyCss,
               sizeCss,
               (int) weight,
               pstyle == PANGO_STYLE_ITALIC ? "italic" :
               pstyle == PANGO_STYLE_OBLIQUE ? "oblique" : "normal");
 
+    g_free (familyCss);
     g_free (sizeCss);
     return css;
 }
@@ -1421,6 +1462,7 @@ int filter(const struct dirent *entry) {
  * GtkApplication is activated. */
 static void on_activate (GtkApplication *application, gpointer data) {
     GtkCssProvider *provider;
+    GMenuModel *menuModel;
 
     /* Main window. */
     window = gtk_application_window_new (application);
@@ -1451,7 +1493,7 @@ static void on_activate (GtkApplication *application, gpointer data) {
                                      " .no-gpsd progressbar > trough, .no-gpsd progressbar > trough > progress,"
                                      " .no-gpsd progressbar > text, .no-gpsd menubar, .no-gpsd menubar > item"
                                      " { background: #808080; }"
-                                     " entry { box-shadow: none; }",
+                                     " .gnome-gps-ui entry { box-shadow: none; }",
                                      -1);
     gtk_style_context_add_provider_for_display (gdk_display_get_default (),
             GTK_STYLE_PROVIDER (provider), GTK_STYLE_PROVIDER_PRIORITY_USER);
@@ -1471,9 +1513,12 @@ static void on_activate (GtkApplication *application, gpointer data) {
     gtk_widget_add_css_class (vbox, "gnome-gps-ui");
     gtk_window_set_child (GTK_WINDOW (window), vbox);
 
-    /* Menu bar. */
+    /* Menu bar. The bar takes its own reference to the model, so drop
+     * the one buildMenuModel () returned. */
     setupActions (application);
-    menubar = gtk_popover_menu_bar_new_from_model (buildMenuModel ());
+    menuModel = buildMenuModel ();
+    menubar = gtk_popover_menu_bar_new_from_model (menuModel);
+    g_object_unref (menuModel);
     gtk_box_append (GTK_BOX (vbox), menubar);
 
     /* Grid of label/value pairs. */

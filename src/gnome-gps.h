@@ -51,8 +51,10 @@ static void angleChangeState    (GSimpleAction *action, GVariant *value, gpointe
 /* Host/port dialog button callbacks. */
 static void hostOkCallback (GtkWidget *widget, gpointer data);
 static void hostCancelCallback (GtkWidget *widget, gpointer data);
+static void hostDestroyCallback (GtkWidget *widget, gpointer data);
 
 /* Font handling via CSS + GtkFontDialog. */
+static gchar *cssEscapeString (const char *s);
 static gchar *pangoDescToCss (PangoFontDescription *desc);
 static void applyFontCss (void);
 static void onFontChosen (GObject *source, GAsyncResult *res, gpointer data);

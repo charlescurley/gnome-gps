@@ -6,8 +6,8 @@
 .SUFFIXES: .c .o .do
 
 # Specify libraries, header files, etc.
-CINPUTS = `pkg-config --cflags gtk4 libgps`
-LINPUTS = `pkg-config --libs   gtk4 libgps`
+CINPUTS = `pkg-config --cflags 'gtk4 >= 4.10' libgps`
+LINPUTS = `pkg-config --libs   'gtk4 >= 4.10' libgps`
 
 DEBUGFLAGS = -ggdb -Wall -c -Wno-deprecated-declarations -DDEBUG -Wno-format-truncation $(CFLAGS)
 DEBUGOBJS = gnome-gps.do debug.do
