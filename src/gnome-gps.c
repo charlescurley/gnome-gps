@@ -963,7 +963,7 @@ static void setupActions (GtkApplication *application) {
         { "app.magnetic::m", "<Ctrl>e" },
         { "app.angle::d",    "<Ctrl>d" },
         { "app.angle::m",    "<Ctrl>n" },
-        { "app.angle::s",    "<Ctrl><Shift>s" },
+        { "app.angle::s",    "<Ctrl>c" },
         { "app.resynch",     "<Ctrl>r" },
         { "app.host",        "<Ctrl>h" },
         { "app.about",       "<Ctrl>a" },
