@@ -811,7 +811,6 @@ static gchar *pangoDescToCss (PangoFontDescription *desc) {
     gchar *sizeCss;
     gchar *troughCss;
     gchar *css;
-    gint fontPx;
 
     if (size <= 0) {
         sizeCss = g_strdup ("");
@@ -823,24 +822,21 @@ static gchar *pangoDescToCss (PangoFontDescription *desc) {
 
     /* AIDEV-NOTE: Scale the satellite bar's height with the font so it
      * stays the full height of the widget as the font grows (as it did in
-     * GTK2). min-height needs a concrete px length, so convert points at
-     * the CSS 96/72 ratio; when there is no size, fall back to the 20px
-     * base rule in on_activate (). */
+     * GTK2). Emit min-height in the SAME unit as the font-size (pt or px)
+     * so GTK resolves both through the identical -gtk-dpi conversion: a px
+     * height paired with a pt font desyncs under HiDPI or accessibility
+     * text-scaling, leaving the bar too short for the text. With no size,
+     * fall back to the 20px base rule in on_activate (). 7/5 is ~1.4x line
+     * height; divide by PANGO_SCALE last to keep the rounding tight. */
     if (size <= 0) {
-        fontPx = 0;
-    } else if (absolute) {
-        fontPx = size / PANGO_SCALE;
+        troughCss = g_strdup ("");
     } else {
-        fontPx = (size / PANGO_SCALE) * 96 / 72;
-    }
-    if (fontPx > 0) {
         troughCss = g_strdup_printf (
                         " .gnome-gps-ui progressbar > trough,"
                         " .gnome-gps-ui progressbar > trough > progress"
-                        " { min-height: %dpx; }",
-                        fontPx * 7 / 5);
-    } else {
-        troughCss = g_strdup ("");
+                        " { min-height: %d%s; }",
+                        size * 7 / (PANGO_SCALE * 5),
+                        absolute ? "px" : "pt");
     }
 
     familyCss = cssEscapeString (family != NULL ? family : "Sans");
