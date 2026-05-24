@@ -267,8 +267,19 @@ void setColor (const char *cssClass) {
 
     if (cur != NULL) {
         gtk_widget_remove_css_class (vbox, cur);
+        if (window != NULL) {
+            gtk_widget_remove_css_class (window, cur);
+        }
     }
     gtk_widget_add_css_class (vbox, cssClass);
+    /* AIDEV-NOTE: Colour the window itself too, not just the vbox. GTK2
+     * set the window background directly (gtk_widget_modify_bg); doing the
+     * same here means a tall progressbar (large font) can never expose a
+     * transparent strip behind the bar -- the window paints the fix colour
+     * across its whole content area. */
+    if (window != NULL) {
+        gtk_widget_add_css_class (window, cssClass);
+    }
     cur = cssClass;
 }
 
@@ -798,7 +809,9 @@ static gchar *pangoDescToCss (PangoFontDescription *desc) {
     PangoStyle pstyle = pango_font_description_get_style (desc);
     gchar *familyCss;
     gchar *sizeCss;
+    gchar *troughCss;
     gchar *css;
+    gint fontPx;
 
     if (size <= 0) {
         sizeCss = g_strdup ("");
@@ -808,20 +821,44 @@ static gchar *pangoDescToCss (PangoFontDescription *desc) {
         sizeCss = g_strdup_printf ("font-size: %dpt;", size / PANGO_SCALE);
     }
 
+    /* AIDEV-NOTE: Scale the satellite bar's height with the font so it
+     * stays the full height of the widget as the font grows (as it did in
+     * GTK2). min-height needs a concrete px length, so convert points at
+     * the CSS 96/72 ratio; when there is no size, fall back to the 20px
+     * base rule in on_activate (). */
+    if (size <= 0) {
+        fontPx = 0;
+    } else if (absolute) {
+        fontPx = size / PANGO_SCALE;
+    } else {
+        fontPx = (size / PANGO_SCALE) * 96 / 72;
+    }
+    if (fontPx > 0) {
+        troughCss = g_strdup_printf (
+                        " .gnome-gps-ui progressbar > trough,"
+                        " .gnome-gps-ui progressbar > trough > progress"
+                        " { min-height: %dpx; }",
+                        fontPx * 7 / 5);
+    } else {
+        troughCss = g_strdup ("");
+    }
+
     familyCss = cssEscapeString (family != NULL ? family : "Sans");
     css = g_strdup_printf (
               ".gnome-gps-ui entry, .gnome-gps-ui entry > text,"
               " .gnome-gps-ui progressbar > text {"
               " font-family: \"%s\"; %s"
-              " font-weight: %d; font-style: %s; }",
+              " font-weight: %d; font-style: %s; }%s",
               familyCss,
               sizeCss,
               (int) weight,
               pstyle == PANGO_STYLE_ITALIC ? "italic" :
-              pstyle == PANGO_STYLE_OBLIQUE ? "oblique" : "normal");
+              pstyle == PANGO_STYLE_OBLIQUE ? "oblique" : "normal",
+              troughCss);
 
     g_free (familyCss);
     g_free (sizeCss);
+    g_free (troughCss);
     return css;
 }
 
@@ -1475,24 +1512,43 @@ static void on_activate (GtkApplication *application, gpointer data) {
 
     /* Fix-state background colors, applied via a CSS provider on the
      * default display and selected by a class on the root container. */
+    /* AIDEV-NOTE: GTK4 draws a GtkProgressBar as a node tree
+     * (progressbar > trough > progress, plus a sibling "text" node), so
+     * the fix-state colour has to be painted on each part. We also paint
+     * the "progressbar" node itself: at a large font the trough no longer
+     * covers the whole widget, and without this the uncovered area shows
+     * through (review bug: bar "disappears", background shows through).
+     * The "progress" (filled) node is deliberately NOT painted, so the
+     * theme's progress colour shows the satellites-used/visible fraction
+     * over the fix-coloured trough, as GTK2 did. */
     provider = gtk_css_provider_new ();
     gtk_css_provider_load_from_data (provider,
                                      ".gps-3d, .gps-3d entry, .gps-3d entry > text,"
-                                     " .gps-3d progressbar > trough, .gps-3d progressbar > trough > progress,"
+                                     " .gps-3d progressbar, .gps-3d progressbar > trough,"
                                      " .gps-3d progressbar > text, .gps-3d menubar, .gps-3d menubar > item"
                                      " { background: #00ff00; }"
                                      ".gps-2d, .gps-2d entry, .gps-2d entry > text,"
-                                     " .gps-2d progressbar > trough, .gps-2d progressbar > trough > progress,"
+                                     " .gps-2d progressbar, .gps-2d progressbar > trough,"
                                      " .gps-2d progressbar > text, .gps-2d menubar, .gps-2d menubar > item"
                                      " { background: #ffff00; }"
                                      ".no-fix, .no-fix entry, .no-fix entry > text,"
-                                     " .no-fix progressbar > trough, .no-fix progressbar > trough > progress,"
+                                     " .no-fix progressbar, .no-fix progressbar > trough,"
                                      " .no-fix progressbar > text, .no-fix menubar, .no-fix menubar > item"
                                      " { background: #ff0000; }"
                                      ".no-gpsd, .no-gpsd entry, .no-gpsd entry > text,"
-                                     " .no-gpsd progressbar > trough, .no-gpsd progressbar > trough > progress,"
+                                     " .no-gpsd progressbar, .no-gpsd progressbar > trough,"
                                      " .no-gpsd progressbar > text, .no-gpsd menubar, .no-gpsd menubar > item"
                                      " { background: #808080; }"
+                                     /* GTK4's theme dims progressbar text and gives
+                                      * the trough a thin min-height. Undo both so the
+                                      * text is fully present and the bar is visible at
+                                      * the default font (pangoDescToCss scales the
+                                      * height with the user's chosen font). */
+                                     " .gnome-gps-ui progressbar > text"
+                                     " { color: #000000; opacity: 1; }"
+                                     " .gnome-gps-ui progressbar > trough,"
+                                     " .gnome-gps-ui progressbar > trough > progress"
+                                     " { min-height: 20px; }"
                                      " .gnome-gps-ui entry { box-shadow: none; }",
                                      -1);
     gtk_style_context_add_provider_for_display (gdk_display_get_default (),
