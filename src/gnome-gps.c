@@ -825,9 +825,11 @@ static gchar *pangoDescToCss (PangoFontDescription *desc) {
      * GTK2). Emit min-height in the SAME unit as the font-size (pt or px)
      * so GTK resolves both through the identical -gtk-dpi conversion: a px
      * height paired with a pt font desyncs under HiDPI or accessibility
-     * text-scaling, leaving the bar too short for the text. With no size,
-     * fall back to the 20px base rule in on_activate (). 7/5 is ~1.4x line
-     * height; divide by PANGO_SCALE last to keep the rounding tight. */
+     * text-scaling, leaving the bar too short for the text. With no size
+     * (e.g. a family-only config font), emit nothing and fall back to the
+     * 1.4em base rule in on_activate (), which tracks the inherited font.
+     * 7/5 is ~1.4x line height; divide by PANGO_SCALE last to keep the
+     * rounding tight. */
     if (size <= 0) {
         troughCss = g_strdup ("");
     } else {
@@ -1536,15 +1538,19 @@ static void on_activate (GtkApplication *application, gpointer data) {
                                      " .no-gpsd progressbar > text, .no-gpsd menubar, .no-gpsd menubar > item"
                                      " { background: #808080; }"
                                      /* GTK4's theme dims progressbar text and gives
-                                      * the trough a thin min-height. Undo both so the
-                                      * text is fully present and the bar is visible at
-                                      * the default font (pangoDescToCss scales the
-                                      * height with the user's chosen font). */
+                                      * the trough a thin min-height. Undo both: keep
+                                      * the text fully present, and size the bar
+                                      * relative to the font (1.4em) so it tracks the
+                                      * text even when no explicit point size is set
+                                      * (a size-less config font, or the default font)
+                                      * and under accessibility text-scaling.
+                                      * pangoDescToCss () emits a matching pt/px rule
+                                      * that overrides this when a sized font is set. */
                                      " .gnome-gps-ui progressbar > text"
                                      " { color: #000000; opacity: 1; }"
                                      " .gnome-gps-ui progressbar > trough,"
                                      " .gnome-gps-ui progressbar > trough > progress"
-                                     " { min-height: 20px; }"
+                                     " { min-height: 1.4em; }"
                                      " .gnome-gps-ui entry { box-shadow: none; }",
                                      -1);
     gtk_style_context_add_provider_for_display (gdk_display_get_default (),
