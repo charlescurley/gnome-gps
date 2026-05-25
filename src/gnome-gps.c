@@ -495,7 +495,7 @@ void formatAltitude (double altitude) {
     }
 
     (void) snprintf (altString, STRINGBUFFSIZE,
-                     "%.0f %s %s", altitude,
+                     "%.1f %s %s", altitude,
                      units != METRIC ? "feet" : "meters",
                      altitudeFlag == MSL ? "MSL" : "HAE");
     gtk_entry_set_text(entries[ALT], altString );
