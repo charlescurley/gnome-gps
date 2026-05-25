@@ -87,7 +87,7 @@
 
 /* Settings that go into the configuration file. */
 typedef struct {
-    gchar *port, *host, *angle, *units, *font, *gmt, *magnetic;
+    gchar *port, *host, *angle, *units, *font, *gmt, *magnetic, *altitudeFlag;
 } settings;
 
 /* Have we detected the loss of the GPS receiver? If so, when we get a
@@ -134,6 +134,11 @@ char angle = DEGREES;           /* How to display the angles in lat
                                  * and long. */
 gboolean gmt = true;            /* Display time in GMT or local? */
 gboolean magnetic = false;      /* Display true or magnetic heading? */
+
+/* Display altitude above mean sea level (MSL) or height above
+ * elipsoid (HAE), probably WSG 84. */
+enum altSpec {HAE = 'h', MSL = 'm' } altSpec;
+char altitudeFlag = HAE;
 
 gchar *fixBuffInit = "No fix seen yet";
 gchar *timeStringInit = "No time yet";
@@ -490,8 +495,9 @@ void formatAltitude (double altitude) {
     }
 
     (void) snprintf (altString, STRINGBUFFSIZE,
-                     units != METRIC ? "%.0f feet" : "%.1f meters",
-                     altitude);
+                     "%.0f %s %s", altitude,
+                     units != METRIC ? "feet" : "meters",
+                     altitudeFlag == MSL ? "MSL" : "HAE");
     gtk_entry_set_text(entries[ALT], altString );
 }
 
@@ -730,7 +736,10 @@ static GtkItemFactoryEntry menu_items[] = {
     { "/Units/Sep",                  NULL,        NULL,       0, "<Separator>"          },
     { "/Units/_True",           "<ctrl>t",      setMag,   false, "<RadioItem>"          },
     { "/Units/Magn_etic",       "<ctrl>e",      setMag,    true, "/Units/True"          },
-    { "/_Degrees",                   NULL,        NULL,       0, "<Branch>" },
+    { "/Units/Sep",                  NULL,        NULL,       0, "<Separator>"          },
+    { "/Units/alt HAE",         "<ctrl>q",      setAlt,     HAE, "<RadioItem>"          },
+    { "/Units/alt MSL",         "<ctrl>z",      setAlt,     MSL, "/Units/alt HAE"       },
+    { "/_Degrees",                   NULL,        NULL,       0, "<Branch>"             },
     { "/Degrees/_ddd.dddddd",   "<ctrl>d",  setDegrees, DEGREES, "<RadioItem>"          },
     { "/Degrees/ddd _mm.mmmm",  "<ctrl>n",  setDegrees, MINUTES, "/Degrees/ddd.dddddd"  },
     { "/Degrees/ddd mm _ss.ss", "<ctrl>s",  setDegrees, SECONDS, "/Degrees/ddd.dddddd"  },
@@ -742,6 +751,12 @@ static GtkItemFactoryEntry menu_items[] = {
 };
 
 /* Now some functions for the menu */
+static void setAlt( gpointer   callback_data,
+                    guint      callback_action,
+                    GtkWidget *menu_item ) {
+    altitudeFlag = callback_action;
+}
+
 static void setUnits( gpointer   callback_data,
                       guint      callback_action,
                       GtkWidget *menu_item ) {
@@ -872,6 +887,16 @@ static GtkWidget *get_menubar_menu( GtkWidget  *window ) {
 
     /* Finally, return the actual menu bar created by the item factory. */
     return gtk_item_factory_get_widget (item_factory, "<main>");
+}
+
+/* getAlt. Depending on the value of altitudeFlag, return either
+ * altHAE or altMSL. */
+inline double getAlt () {
+    if (altitudeFlag == HAE) {
+        return (gpsdata.fix.altHAE);
+    } else {
+        return (gpsdata.fix.altMSL);
+    }
 }
 
 /* Our display function. Nested case statements. */
@@ -1113,15 +1138,16 @@ void showData (void) {
                 if ((gpsdata.set & (ALTITUDE_SET))
                     && isfinite(gpsdata.fix.latitude)
                     && isfinite(gpsdata.fix.longitude)
-                    && isfinite(gpsdata.fix.altitude)) {
-                    formatAltitude (gpsdata.fix.altitude);
+                    && isfinite(getAlt ())) {
+                    formatAltitude (getAlt ());
                     if (verbose) {
 
                         (void) snprintf (fixBuff, STRINGBUFFSIZE,
-                                         "la %f, lo %f, alt %f",
+                                         "la %f, lo %f, alt %f, N %f",
                                          gpsdata.fix.latitude,
                                          gpsdata.fix.longitude,
-                                         gpsdata.fix.altitude);
+                                         getAlt (),
+                                         gpsdata.fix.altHAE - gpsdata.fix.altMSL);
                     }
                 }
 
@@ -1241,6 +1267,9 @@ gchar *saveKeyFile (GKeyFile *keyFile) {
     sandbox [0] = gmt ? 't' : 'f';
     g_key_file_set_value (keyFile, baseName, "gmt", sandbox);
 
+    sandbox [0] = altitudeFlag;
+    g_key_file_set_value (keyFile, baseName, "altitudeFlag", sandbox);
+
     sandbox [0] = magnetic ? 't' : 'f';
     g_key_file_set_value (keyFile, baseName, "magnetic", sandbox);
 
@@ -1320,6 +1349,26 @@ void setActiveAngle (void) {
             TRUE);
         break;
 
+    }
+}
+
+/* Similarly for altitude HAE vs MSL */
+void setActiveAltitude (void) {
+    switch (altitudeFlag) {
+    /* default: */
+    /*     altitudeFlag = MSL; */
+
+    case MSL:
+        gtk_check_menu_item_set_active(
+            GTK_CHECK_MENU_ITEM (gtk_item_factory_get_item (item_factory, "/Units/alt MSL")),
+            TRUE);
+        break;
+
+    case HAE:
+        gtk_check_menu_item_set_active(
+            GTK_CHECK_MENU_ITEM (gtk_item_factory_get_item (item_factory, "/Units/alt HAE")),
+            TRUE);
+        break;
     }
 }
 
@@ -1553,6 +1602,13 @@ int main ( int   argc,
             if (conf->magnetic != NULL && strlen (conf->units) > 0) {
                 magnetic = (conf->magnetic[0] == 't') ? true : false;
             }
+
+            conf->altitudeFlag = NULL;
+            conf->altitudeFlag = g_key_file_get_string ( keyFile, baseName,
+                                                "altitudeFlag", NULL);
+            if (conf->altitudeFlag != NULL && strlen (conf->units) > 0) {
+                altitudeFlag = (conf->altitudeFlag[0] == HAE) ? HAE : MSL;
+            }
         }
     }
 
@@ -1749,6 +1805,7 @@ int main ( int   argc,
     setActiveUnits ();
     setActiveGmt ();
     setActiveMagnetic ();
+    setActiveAltitude ();
 
     /* (void) printf ("Host is %s, port is %s\n", host, port); */
 
