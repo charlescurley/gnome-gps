@@ -104,7 +104,10 @@ GtkWidget *menubar;             /* Which goes in the top of the
 GtkWidget *table;               /* Which goes in the middle of the
                                  * vbox. */
 GtkProgressBar *progress;       /* Which goes into the bottom of the
-                                 * vbox. */
+                                 * vbox, wrapped in an overlay. */
+GtkLabel *progressLabel;        /* Overlay text drawn on top of the
+                                 * satellite bar (GTK4 no longer renders
+                                 * the bar's own text over the trough). */
 GtkCssProvider *colorProvider = NULL; /* fix-state background colors */
 GtkCssProvider *fontProvider  = NULL; /* user-selected display font */
 PangoFontDescription *currentFontDesc = NULL; /* the font currently in use */
@@ -563,11 +566,11 @@ static void resynch (void) {
                 perror (baseName);
             }
         }
-        gtk_progress_bar_set_text (progress, "Sync Failure: No gpsd connection!");
+        gtk_label_set_text (progressLabel, "Sync Failure: No gpsd connection!");
         haveConnection = false;
     } else {
         /* If we got here, we're good to go. */
-        gtk_progress_bar_set_text (progress, "Ahhh, a gpsd connection!");
+        gtk_label_set_text (progressLabel, "Ahhh, a gpsd connection!");
         gpsLost = false;
         haveConnection = true;
         sendWatch ();
@@ -769,7 +772,7 @@ static void saveAction( GSimpleAction *action,
     gchar *results;
     if (haveHome) {
         results = saveKeyFile (keyFile);
-        gtk_progress_bar_set_text (progress, results);
+        gtk_label_set_text (progressLabel, results);
     }
 }
 
@@ -844,7 +847,7 @@ static gchar *pangoDescToCss (PangoFontDescription *desc) {
     familyCss = cssEscapeString (family != NULL ? family : "Sans");
     css = g_strdup_printf (
               ".gnome-gps-ui entry, .gnome-gps-ui entry > text,"
-              " .gnome-gps-ui progressbar > text {"
+              " .gnome-gps-ui label.gnome-gps-bar-label {"
               " font-family: \"%s\"; %s"
               " font-weight: %d; font-style: %s; }%s",
               familyCss,
@@ -1065,7 +1068,7 @@ void showData (void) {
             gpsLost = true;
 
             gtk_progress_bar_set_fraction (progress, 0.0);
-            gtk_progress_bar_set_text (progress, "GPS lost!");
+            gtk_label_set_text (progressLabel, "GPS lost!");
             setColor ("no-gpsd");
 
             if (verbose) {
@@ -1100,7 +1103,7 @@ void showData (void) {
                 (void) strcpy (tmpBuff, "GPS Found!");
             }
             sendWatch ();
-            gtk_progress_bar_set_text (progress, tmpBuff);
+            gtk_label_set_text (progressLabel, tmpBuff);
             if (verbose) {
                 (void) snprintf(tmpBuff, sizeof(tmpBuff),
                                 "driver = %s: subtype = %s%s: activated = %lld",
@@ -1217,7 +1220,7 @@ void showData (void) {
                                  "No satellites visible, no fix.");
             }
         }
-        gtk_progress_bar_set_text (progress, banner);
+        gtk_label_set_text (progressLabel, banner);
 
         if (verbose) {
             (void) printf ("set 0x%08x, %s\n", (unsigned int) gpsdata.set,
@@ -1511,43 +1514,47 @@ static void on_activate (GtkApplication *application, gpointer data) {
     /* Fix-state background colors, applied via a CSS provider on the
      * default display and selected by a class on the root container. */
     /* AIDEV-NOTE: GTK4 draws a GtkProgressBar as a node tree
-     * (progressbar > trough > progress, plus a sibling "text" node), so
-     * the fix-state colour has to be painted on each part. We also paint
-     * the "progressbar" node itself: at a large font the trough no longer
-     * covers the whole widget, and without this the uncovered area shows
-     * through (review bug: bar "disappears", background shows through).
-     * The "progress" (filled) node is deliberately NOT painted, so the
-     * theme's progress colour shows the satellites-used/visible fraction
-     * over the fix-coloured trough, as GTK2 did. */
+     * (progressbar > trough > progress). We paint the fix-state colour
+     * on the "progressbar" node and its "trough" so the whole widget
+     * area is covered; the "progress" (filled) node is deliberately NOT
+     * painted, so the theme's progress colour shows the
+     * satellites-used/visible fraction over the fix-coloured trough, as
+     * GTK2 did. The bar's own "text" node is hidden in the layout (the
+     * readout is drawn by a separate GtkLabel via GtkOverlay), so we
+     * don't bother painting it. */
     provider = gtk_css_provider_new ();
     gtk_css_provider_load_from_data (provider,
                                      ".gps-3d, .gps-3d entry, .gps-3d entry > text,"
                                      " .gps-3d progressbar, .gps-3d progressbar > trough,"
-                                     " .gps-3d progressbar > text, .gps-3d menubar, .gps-3d menubar > item"
+                                     " .gps-3d menubar, .gps-3d menubar > item"
                                      " { background: #00ff00; }"
                                      ".gps-2d, .gps-2d entry, .gps-2d entry > text,"
                                      " .gps-2d progressbar, .gps-2d progressbar > trough,"
-                                     " .gps-2d progressbar > text, .gps-2d menubar, .gps-2d menubar > item"
+                                     " .gps-2d menubar, .gps-2d menubar > item"
                                      " { background: #ffff00; }"
                                      ".no-fix, .no-fix entry, .no-fix entry > text,"
                                      " .no-fix progressbar, .no-fix progressbar > trough,"
-                                     " .no-fix progressbar > text, .no-fix menubar, .no-fix menubar > item"
+                                     " .no-fix menubar, .no-fix menubar > item"
                                      " { background: #ff0000; }"
                                      ".no-gpsd, .no-gpsd entry, .no-gpsd entry > text,"
                                      " .no-gpsd progressbar, .no-gpsd progressbar > trough,"
-                                     " .no-gpsd progressbar > text, .no-gpsd menubar, .no-gpsd menubar > item"
+                                     " .no-gpsd menubar, .no-gpsd menubar > item"
                                      " { background: #808080; }"
-                                     /* GTK4's theme dims progressbar text and gives
-                                      * the trough a thin min-height. Undo both: keep
-                                      * the text fully present, and size the bar
-                                      * relative to the font (1.4em) so it tracks the
-                                      * text even when no explicit point size is set
-                                      * (a size-less config font, or the default font)
-                                      * and under accessibility text-scaling.
-                                      * pangoDescToCss () emits a matching pt/px rule
-                                      * that overrides this when a sized font is set. */
-                                     " .gnome-gps-ui progressbar > text"
-                                     " { color: #000000; opacity: 1; }"
+                                     /* GTK4's theme gives the trough a thin
+                                      * min-height; size it relative to the font
+                                      * (1.4em) so it tracks the readout even when
+                                      * no explicit point size is set (size-less
+                                      * config font or default font) and under
+                                      * accessibility text-scaling. pangoDescToCss
+                                      * () emits a matching pt/px rule that
+                                      * overrides this when a sized font is set.
+                                      * The overlay readout label is transparent
+                                      * so the trough/progress show through it;
+                                      * we force black + full opacity to undo any
+                                      * theme dimming. */
+                                     " .gnome-gps-ui label.gnome-gps-bar-label"
+                                     " { background: transparent;"
+                                     " color: #000000; opacity: 1; }"
                                      " .gnome-gps-ui progressbar > trough,"
                                      " .gnome-gps-ui progressbar > trough > progress"
                                      " { min-height: 1.4em; }"
@@ -1596,12 +1603,31 @@ static void on_activate (GtkApplication *application, gpointer data) {
 
     initStrings ();
 
-    /* The satellite progress bar. GTK4 hides the text unless asked. */
-    progress = (GtkProgressBar *) gtk_progress_bar_new ();
-    gtk_progress_bar_set_show_text (progress, TRUE);
-    gtk_progress_bar_set_fraction (progress, 0.0);
-    gtk_progress_bar_set_text (progress, "We've seen no data yet.");
-    gtk_box_append (GTK_BOX (vbox), GTK_WIDGET (progress));
+    /* AIDEV-NOTE: The satellite progress bar with its readout label.
+     * GTK2 painted the text into the trough; GTK4 made the bar's "text"
+     * a sibling of "trough" so the built-in text sits ABOVE the bar and
+     * wastes vertical space. We restore the GTK2 look by hiding the
+     * bar's own text and floating a GtkLabel on top via GtkOverlay.
+     * The label is transparent (no background), tagged with a class so
+     * the colour/font providers can target it. */
+    {
+        GtkWidget *overlay = gtk_overlay_new ();
+
+        progress = (GtkProgressBar *) gtk_progress_bar_new ();
+        gtk_progress_bar_set_show_text (progress, FALSE);
+        gtk_progress_bar_set_fraction (progress, 0.0);
+
+        progressLabel = (GtkLabel *) gtk_label_new ("We've seen no data yet.");
+        gtk_widget_set_halign (GTK_WIDGET (progressLabel), GTK_ALIGN_CENTER);
+        gtk_widget_set_valign (GTK_WIDGET (progressLabel), GTK_ALIGN_CENTER);
+        gtk_widget_add_css_class (GTK_WIDGET (progressLabel),
+                                  "gnome-gps-bar-label");
+
+        gtk_overlay_set_child (GTK_OVERLAY (overlay), GTK_WIDGET (progress));
+        gtk_overlay_add_overlay (GTK_OVERLAY (overlay),
+                                 GTK_WIDGET (progressLabel));
+        gtk_box_append (GTK_BOX (vbox), overlay);
+    }
 
     /* Apply the saved font, if any. */
     if (initialFont != NULL && strlen (initialFont) > 0) {
