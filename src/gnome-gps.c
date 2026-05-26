@@ -1626,6 +1626,11 @@ static void on_activate (GtkApplication *application, gpointer data) {
         gtk_overlay_set_child (GTK_OVERLAY (overlay), GTK_WIDGET (progress));
         gtk_overlay_add_overlay (GTK_OVERLAY (overlay),
                                  GTK_WIDGET (progressLabel));
+        /* Include the overlay label in size measurement so long status
+         * strings (e.g. the save-file path) or large fonts grow the bar/
+         * window instead of being clipped or drawn outside the overlay. */
+        gtk_overlay_set_measure_overlay (GTK_OVERLAY (overlay),
+                                         GTK_WIDGET (progressLabel), TRUE);
         gtk_box_append (GTK_BOX (vbox), overlay);
     }
 
