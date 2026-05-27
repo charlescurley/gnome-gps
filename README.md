@@ -57,7 +57,7 @@ GUI. These override the defaults and saved values.
 
 -p Port (default is 2947)
 
--e Track/heading will be reported as true
+-t Track/heading will be reported as true
 
 -u US measures
 
