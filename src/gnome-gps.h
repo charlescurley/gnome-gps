@@ -6,7 +6,7 @@
 
 char *versionString = "2.0";
 
-#include <gtk/gtk.h>            /* "apt install libgtk2.0-dev" on
+#include <gtk/gtk.h>            /* "apt install libgtk-4-dev" on
                                  * debian/ubuntu. */
 
 gchar *copyrightString = "Copyright © 2009 to the date of the most recent modification Charles Curley\n";
@@ -20,12 +20,9 @@ inline void preserve (GtkEntry *entry, gint index);
 char *getStatusString (int status);
 void showStatusStrings (void);
 inline void sendWatch (void);
-void setColor (GdkColor *color);
-static gboolean delete_event( GtkWidget *widget,
-                              GdkEvent  *event,
-                              gpointer   data);
-static void destroy( GtkWidget *widget,
-                     gpointer   data );
+void setColor (const char *cssClass);
+void cleanup_gps (void);
+static gboolean on_close_request (GtkWindow *self, gpointer data);
 
 void formatTrack (double track);
 void formatAngle (double theAngle, gchar *buffer);
@@ -39,63 +36,49 @@ void formatTime (timespec_t time);
 void formatAltitude (double altitude);
 void formatSpeed (double speed);
 
-static void resynchWrapper ( gpointer   callback_data,
-                             guint      callback_action,
-                             GtkWidget *menu_item );
-static void hostOkCallback (GtkWidget *widget,
-                            gpointer   data);
-static void hostCancelCallback (GtkWidget *widget,
-                                gpointer   data);
-static void hostDialog( gpointer   callback_data,
-                        guint      callback_action,
-                        GtkWidget *menu_item );
-static void aboutDialog( gpointer   callback_data,
-                         guint      callback_action,
-                         GtkWidget *menu_item );
-static void setUnits( gpointer   callback_data,
-                      guint      callback_action,
-                      GtkWidget *menu_item );
-static void setGmt( gpointer   callback_data,
-                    guint      callback_action,
-                    GtkWidget *menu_item );
-static void setMag( gpointer   callback_data,
-                    guint      callback_action,
-                    GtkWidget *menu_item );
-static void setDegrees( gpointer   callback_data,
-                        guint      callback_action,
-                        GtkWidget *menu_item );
+/* Menu/action callbacks (GAction style: action, parameter/value, data). */
+static void resynchAction (GSimpleAction *action, GVariant *parameter, gpointer data);
+static void hostAction    (GSimpleAction *action, GVariant *parameter, gpointer data);
+static void aboutAction   (GSimpleAction *action, GVariant *parameter, gpointer data);
+static void saveAction    (GSimpleAction *action, GVariant *parameter, gpointer data);
+static void quitAction    (GSimpleAction *action, GVariant *parameter, gpointer data);
+static void fontAction    (GSimpleAction *action, GVariant *parameter, gpointer data);
+static void unitsChangeState    (GSimpleAction *action, GVariant *value, gpointer data);
+static void gmtChangeState      (GSimpleAction *action, GVariant *value, gpointer data);
+static void magneticChangeState (GSimpleAction *action, GVariant *value, gpointer data);
+static void angleChangeState    (GSimpleAction *action, GVariant *value, gpointer data);
 
-static void saveState( gpointer   callback_data,
-                       guint      callback_action,
-                       GtkWidget *menu_item );
-static void fontApplyCallback (GtkWidget *widget,
-                               gpointer   data);
-static void fontOkCallback (GtkWidget *widget,
-                            gpointer   data);
-static void setFont( gpointer   callback_data,
-                     guint      callback_action,
-                     GtkWidget *menu_item );
-static GtkWidget *get_menubar_menu( GtkWidget  *window );
+/* Host/port dialog button callbacks. */
+static void hostOkCallback (GtkWidget *widget, gpointer data);
+static void hostCancelCallback (GtkWidget *widget, gpointer data);
+static void hostDestroyCallback (GtkWidget *widget, gpointer data);
+
+/* Font handling via CSS + GtkFontDialog. */
+static gchar *cssEscapeString (const char *s);
+static gchar *pangoDescToCss (PangoFontDescription *desc);
+static void applyFontCss (void);
+static void onFontChosen (GObject *source, GAsyncResult *res, gpointer data);
+
+/* Menu model and action setup. */
+static GMenuModel *buildMenuModel (void);
+static void setupActions (GtkApplication *application);
 
 void showData (void);
 
-static void buildPair (gint index, gchar *labelText, GtkWidget *table,
+static void buildPair (gint index, gchar *labelText, GtkWidget *grid,
                        gint left, gint top);
 gint gpsPoll (gpointer data);
 gchar *saveKeyFile (GKeyFile *keyFile);
-void setActiveUnits (void);
-void setActiveAngle (void);
+static void on_activate (GtkApplication *application, gpointer data);
 int main ( int argc, char *argv[] );
 /* end prototypes. */
 
 
-/* Table layout of the main window. GG for GnomeGps because gps.h uses ROWS. */
+/* Grid layout of the main window. GG for GnomeGps because gps.h uses ROWS. */
 #define GGROWS 3
 #define GGCOLS 4
 
-/* Display factors for the widgets in the table. */
-#define XOPTIONS ((GtkAttachOptions) (GTK_FILL|GTK_EXPAND|GTK_SHRINK))
-#define YOPTIONS ((GtkAttachOptions) (GTK_FILL|GTK_EXPAND|GTK_SHRINK))
+/* Display padding for the widgets in the grid. */
 #define XPADDING 5
 #define YPADDING 2
 

@@ -80,7 +80,6 @@
 #include <sys/stat.h>           /* S_ISDIR () */
 
 #include "gnome-gps.h"          /* prototypes and other goodies. */
-#include "icon.image.h"         /* prototypes for the icon image. */
 
 #include <dirent.h>             /* directory manipulation, dirent
                                  * stuff. */
@@ -105,10 +104,14 @@ GtkWidget *menubar;             /* Which goes in the top of the
 GtkWidget *table;               /* Which goes in the middle of the
                                  * vbox. */
 GtkProgressBar *progress;       /* Which goes into the bottom of the
-                                 * vbox. */
-GtkWidget *fontDialog = NULL;   /* The font selector dialog */
-GtkItemFactory *item_factory;
-GtkAccelGroup *accel_group;
+                                 * vbox, wrapped in an overlay. */
+GtkLabel *progressLabel;        /* Overlay text drawn on top of the
+                                 * satellite bar (GTK4 no longer renders
+                                 * the bar's own text over the trough). */
+GtkCssProvider *colorProvider = NULL; /* fix-state background colors */
+GtkCssProvider *fontProvider  = NULL; /* user-selected display font */
+PangoFontDescription *currentFontDesc = NULL; /* the font currently in use */
+gchar *initialFont = NULL;      /* font from the config file (applied at startup) */
 
 GtkWidget *hostDialogBox = NULL; /* The host/port dialog box. */
 GtkWidget *hostEntry = NULL;     /* And the two text entry boxes in it. */
@@ -176,13 +179,15 @@ inline void preserve (GtkEntry *entry, gint index) {
     entries [index] = entry;
 }
 
-/* Some colors for various fix states */
-/*                        pixel, red,  green,   blue. */
-GdkColor ThreeDFixColor = {0,      0, 0xffff,      0}; /* green */
-GdkColor TwoDFixColor   = {0, 0xff00, 0xff00,      0}; /* yellow */
-GdkColor NoFixColor     = {0, 0xff00,      0,      0}; /* red */
-GdkColor NoGpsdColor    = {0, 0x8000, 0x8000, 0x8000}; /* gray */
-GdkColor *oldColor = NULL;
+/* GTK4 moved the text setter onto GtkEditable; this keeps the calling
+ * code below unchanged. */
+static inline void setEntryText (GtkEntry *entry, const char *text) {
+    gtk_editable_set_text (GTK_EDITABLE (entry), text);
+}
+
+/* Fix-state background colors are CSS classes (gps-3d, gps-2d, no-fix,
+ * no-gpsd) loaded into colorProvider in on_activate (); setColor ()
+ * swaps the class on the root container. */
 
 /* The name of the configuration directory. If it exists, in the home
  * directory, we'll create and look for our configuration files
@@ -194,10 +199,11 @@ char *configDir = ".config";
  * the various status in gpsd.h. With boundaries so we can handle
  * unknown values. */
 static char statusString[SIZESTATUSSTRINGS][19]
-= {"unknown", "no", "", "DGPS",
-   "RTK fixed", "RTK float", "Dead reckoning",
-   "GNSS dead reckoning", "Time only",
-   "Simulated", "PPS", "unknown"};
+    = {"unknown", "no", "", "DGPS",
+       "RTK fixed", "RTK float", "Dead reckoning",
+       "GNSS dead reckoning", "Time only",
+       "Simulated", "PPS", "unknown"
+      };
 
 /* getStatusString: Get a string appropriate for the current
  * status. With boundary checking. */
@@ -212,7 +218,7 @@ char *getStatusString (int status) {
 /* Similarly, a string array to make the mode more human
  * friendly. Indexed by the various modes in gpsd.h. */
 static char modeString[SIZEMODESTRINGS][9]
-= {"unseen", "no fix", "2D fix", "3D fix",};
+    = {"unseen", "no fix", "2D fix", "3D fix",};
 
 /* sendWatch: tell the gps daemon that we'd like to connect and
  * receive data, thank you. Use this after making a socket
@@ -241,49 +247,49 @@ void initStrings (void) {
     (void) strcpy (speedString, speedStringInit);
     (void) strcpy (trackString, trackStringInit);
 
-    gtk_entry_set_text(entries[TIME], timeString );
-    gtk_entry_set_text(entries[LAT], latString );
-    gtk_entry_set_text(entries[LONG], longString );
-    gtk_entry_set_text(entries[ALT], altString );
-    gtk_entry_set_text(entries[SPEED], speedString );
-    gtk_entry_set_text(entries[TRACK], trackString );
+    setEntryText(entries[TIME], timeString );
+    setEntryText(entries[LAT], latString );
+    setEntryText(entries[LONG], longString );
+    setEntryText(entries[ALT], altString );
+    setEntryText(entries[SPEED], speedString );
+    setEntryText(entries[TRACK], trackString );
 }
 
 /* We have to change the background of the window (which gets the
  * labels, since they don't have their own backgrounds), and the
  * individual text entry widgets, which do have their own
  * backgrounds. */
-void setColor (GdkColor *color) {
-    gint i;
+void setColor (const char *cssClass) {
+    static const char *cur = NULL;
 
-    if ( color != oldColor ) {
-        for ( i=0; i < SIZE; i++) {
-            if (entries[i] != NULL) {
-                gtk_widget_modify_bg (GTK_WIDGET (entries[i]), 0, color);
-            }
-        }
-
-        gtk_widget_modify_bg (GTK_WIDGET (window),   0, color);
-        gtk_widget_modify_bg (GTK_WIDGET (menubar),  0, color);
-        gtk_widget_modify_bg (GTK_WIDGET (progress), 0, color);
-
-        oldColor = color;
+    /* The call sites pass string literals, so a pointer compare is
+     * enough (and mirrors the old "color != oldColor" guard). */
+    if (cur == cssClass) {
+        return;
     }
+
+    if (cur != NULL) {
+        gtk_widget_remove_css_class (vbox, cur);
+        if (window != NULL) {
+            gtk_widget_remove_css_class (window, cur);
+        }
+    }
+    gtk_widget_add_css_class (vbox, cssClass);
+    /* AIDEV-NOTE: Colour the window itself too, not just the vbox. GTK2
+     * set the window background directly (gtk_widget_modify_bg); doing the
+     * same here means a tall progressbar (large font) can never expose a
+     * transparent strip behind the bar -- the window paints the fix colour
+     * across its whole content area. */
+    if (window != NULL) {
+        gtk_widget_add_css_class (window, cssClass);
+    }
+    cur = cssClass;
 }
 
-static gboolean delete_event( GtkWidget *widget,
-                              GdkEvent  *event,
-                              gpointer   data) {
-    /* If you return FALSE in the "delete_event" signal handler, GTK
-     * will emit the "destroy" signal. Returning TRUE means you don't
-     * want the window to be destroyed. This is useful for popping up
-     * 'are you sure you want to quit?' type dialogs. */
-
-    return FALSE;
-}
-
-static void destroy( GtkWidget *widget,
-                     gpointer   data ) {
+/* Tear down the gpsd connection and stop polling. Idempotent, so it is
+ * safe to call from both the window's close-request handler and the
+ * quit action. */
+void cleanup_gps (void) {
     if (haveConnection == true) {
         (void) gps_stream(&gpsdata, WATCH_DISABLE, NULL);
         (void) gps_close (&gpsdata);
@@ -292,9 +298,17 @@ static void destroy( GtkWidget *widget,
 
     if (tag != 0) {
         g_source_remove (tag);
+        tag = 0;
     }
+}
 
-    gtk_main_quit ();
+/* GTK4 replacement for the old delete_event/destroy pair. The
+ * application exits when its last window closes; returning FALSE lets
+ * the close proceed. */
+static gboolean on_close_request (GtkWindow *self,
+                                  gpointer   data) {
+    cleanup_gps ();
+    return FALSE;
 }
 
 /* See http://en.wikipedia.org/wiki/Boxing_the_compass. This isn't the
@@ -385,7 +399,7 @@ void formatTrack (double track) {
                      "%03.0f° %s %s", track,
                      dirString,
                      magnetic ? "Magnetic" : "True");
-    gtk_entry_set_text(entries[TRACK], trackString );
+    setEntryText(entries[TRACK], trackString );
 }
 
 /* Factored from both formatLat and formatLong */
@@ -424,7 +438,7 @@ void formatLat (double latitude) {
     formatAngle (latAbs, latString);
     (void) strncat (latString, latitude < 0.0 ? "S" : latitude > 0.0 ? "N" : "",
                     latitude == 0.0 ? 1 : 2);
-    gtk_entry_set_text(entries[LAT], latString );
+    setEntryText(entries[LAT], latString );
 }
 
 void formatLong (double longitude) {
@@ -432,7 +446,7 @@ void formatLong (double longitude) {
     formatAngle (longAbs, longString);
     (void) strncat (longString, longitude < 0.0 ? "W" : longitude > 0.0 ? "E" : "",
                     longitude == 0.0 ? 1 : 2);
-    gtk_entry_set_text(entries[LONG], longString );
+    setEntryText(entries[LONG], longString );
 }
 
 char *gnome_gps_timespec_to_iso8601(timespec_t fixtime, char isotime[], size_t len)
@@ -481,7 +495,7 @@ void formatTime (timespec_t time) {
     } else {
         (void) strcpy(timeString,"n/a");
     }
-    gtk_entry_set_text(entries[TIME], timeString );
+    setEntryText(entries[TIME], timeString );
 }
 
 void formatAltitude (double altitude) {
@@ -492,7 +506,7 @@ void formatAltitude (double altitude) {
     (void) snprintf (altString, STRINGBUFFSIZE,
                      units != METRIC ? "%.0f feet" : "%.1f meters",
                      altitude);
-    gtk_entry_set_text(entries[ALT], altString );
+    setEntryText(entries[ALT], altString );
 }
 
 /* Speed in meters per second. */
@@ -525,13 +539,13 @@ void formatSpeed (double speed) {
     }
 
     (void) snprintf (speedString, STRINGBUFFSIZE, formatString, speed);
-    gtk_entry_set_text(entries[SPEED], speedString );
+    setEntryText(entries[SPEED], speedString );
 }
 
 static void resynch (void) {
     int ret = 0;
 
-    setColor (&NoGpsdColor);
+    setColor ("no-gpsd");
 
     if (haveConnection == true) {
         (void) gps_stream(&gpsdata, WATCH_DISABLE, NULL);
@@ -552,11 +566,11 @@ static void resynch (void) {
                 perror (baseName);
             }
         }
-        gtk_progress_bar_set_text (progress, "Sync Failure: No gpsd connection!");
+        gtk_label_set_text (progressLabel, "Sync Failure: No gpsd connection!");
         haveConnection = false;
     } else {
         /* If we got here, we're good to go. */
-        gtk_progress_bar_set_text (progress, "Ahhh, a gpsd connection!");
+        gtk_label_set_text (progressLabel, "Ahhh, a gpsd connection!");
         gpsLost = false;
         haveConnection = true;
         sendWatch ();
@@ -566,9 +580,9 @@ static void resynch (void) {
 /* This exists so we can call resynch () from the menu. We don't
  * actually use the parameters at all. We call resynch () elsewhere in
  * the program. */
-static void resynchWrapper ( gpointer   callback_data,
-                             guint      callback_action,
-                             GtkWidget *menu_item ) {
+static void resynchAction ( GSimpleAction *action,
+                            GVariant      *parameter,
+                            gpointer       data ) {
     resynch ();
 }
 
@@ -577,18 +591,18 @@ static void hostOkCallback (GtkWidget *widget,
     const gchar *sandbox = NULL; /* look but don't touch */
 
     /* Get the contents of the two entry widgets */
-    sandbox = gtk_entry_get_text (GTK_ENTRY (hostEntry));
+    sandbox = gtk_editable_get_text (GTK_EDITABLE (hostEntry));
 
     if ((sandbox != NULL) && (strlen (sandbox) < STRINGBUFFSIZE) && (strlen (sandbox))) {
         (void) strncpy (hostName, sandbox, STRINGBUFFSIZE-1);
     }
 
-    sandbox = gtk_entry_get_text (GTK_ENTRY (portEntry));
+    sandbox = gtk_editable_get_text (GTK_EDITABLE (portEntry));
     if ((sandbox != NULL) && (strlen (sandbox) < STRINGBUFFSIZE) && (strlen (sandbox))) {
         (void) strncpy (hostPort, sandbox, STRINGBUFFSIZE-1);
     }
 
-    gtk_widget_destroy (hostDialogBox);
+    gtk_window_destroy (GTK_WINDOW (hostDialogBox));
 
     /* go ahead and implement the change, if any. */
     resynch ();
@@ -596,89 +610,94 @@ static void hostOkCallback (GtkWidget *widget,
 
 static void hostCancelCallback (GtkWidget *widget,
                                 gpointer   data) {
-    gtk_widget_destroy (hostDialogBox);
+    gtk_window_destroy (GTK_WINDOW (hostDialogBox));
 }
 
-static void hostDialog( gpointer   callback_data,
-                        guint      callback_action,
-                        GtkWidget *menu_item ) {
-    GtkWidget *table = NULL;
-    GtkWidget *child = NULL;
-    GtkWidget *okButton = NULL;
-    GtkWidget *cancelButton = NULL;
+/* When the host/port window goes away -- via OK, Cancel, or the window
+ * manager -- forget its widgets so the single-instance guard in
+ * hostAction () lets a later request build a fresh dialog instead of
+ * presenting (or touching) freed pointers. */
+static void hostDestroyCallback (GtkWidget *widget,
+                                 gpointer   data) {
+    hostDialogBox = NULL;
+    hostEntry = NULL;
+    portEntry = NULL;
+}
 
-    hostDialogBox = gtk_dialog_new ();
-    table = gtk_table_new( 2, 2, FALSE ); /* 2 rows, 2 cols */
+/* Build one right-aligned label plus an editable entry row in the
+ * dialog's grid, and remember the entry via *entry. */
+static void hostPair (GtkWidget *grid, gint row, const gchar *labelText,
+                      GtkWidget **entry, const gchar *value) {
+    GtkWidget *child;
 
-    /* Put the table in the vbox */
-    gtk_box_pack_start (GTK_BOX (GTK_DIALOG (hostDialogBox)->vbox),
-                        table, TRUE, TRUE, 0);
+    child = gtk_label_new (labelText);
+    gtk_widget_set_halign (child, GTK_ALIGN_END);
+    gtk_grid_attach (GTK_GRID (grid), child, 0, row, 1, 1);
 
-    {
-        /* Creates a new right aligned label. */
-        child = gtk_label_new( "Host" );
-        gtk_misc_set_alignment(GTK_MISC(child), 1.0f, 0.5f);
+    *entry = gtk_entry_new ();
+    gtk_editable_set_editable (GTK_EDITABLE (*entry), true);
+    gtk_editable_set_text (GTK_EDITABLE (*entry), value);
+    gtk_widget_set_hexpand (*entry, TRUE);
+    g_signal_connect (*entry, "activate",
+                      G_CALLBACK (hostOkCallback), NULL);
+    gtk_grid_attach (GTK_GRID (grid), *entry, 1, row, 1, 1);
+}
 
-        /* Instead of gtk_container_add, we pack this button into the
-         * table, which has been packed into the window. */
-        gtk_table_attach(GTK_TABLE (table), child, 0, 1, 0, 1,
-                         XOPTIONS, YOPTIONS, XPADDING, YPADDING );
+static void hostAction( GSimpleAction *action,
+                        GVariant      *parameter,
+                        gpointer       data ) {
+    GtkWidget *box;
+    GtkWidget *grid;
+    GtkWidget *buttonBox;
+    GtkWidget *okButton;
+    GtkWidget *cancelButton;
 
-        /* And now the non-editable text box to show it. */
-        hostEntry = gtk_entry_new ();
-        gtk_editable_set_editable(GTK_EDITABLE (hostEntry), true);
-        gtk_entry_set_text(GTK_ENTRY (hostEntry), hostName );
-        gtk_signal_connect (GTK_OBJECT(hostEntry), "activate",
-                            GTK_SIGNAL_FUNC(hostOkCallback), NULL);
-
-        /* Instead of gtk_container_add, we pack this text entry into the
-         * table, which has been packed into the window. */
-        gtk_table_attach(GTK_TABLE (table), hostEntry, 1, 2, 0, 1,
-                         XOPTIONS, YOPTIONS, XPADDING, YPADDING );
+    /* Only one host/port dialog at a time: re-present the existing one. */
+    if (hostDialogBox != NULL) {
+        gtk_window_present (GTK_WINDOW (hostDialogBox));
+        return;
     }
 
-    {
-        /* Creates a new right aligned label. */
-        child = gtk_label_new( "Port" );
-        gtk_misc_set_alignment(GTK_MISC(child), 1.0f, 0.5f);
+    /* GTK4 has no gtk_dialog_run (); build a plain modal window and
+     * drive it with the button/activate callbacks. */
+    hostDialogBox = gtk_window_new ();
+    gtk_window_set_title (GTK_WINDOW (hostDialogBox), "Host");
+    gtk_window_set_transient_for (GTK_WINDOW (hostDialogBox), GTK_WINDOW (window));
+    gtk_window_set_modal (GTK_WINDOW (hostDialogBox), TRUE);
+    gtk_window_set_destroy_with_parent (GTK_WINDOW (hostDialogBox), TRUE);
+    g_signal_connect (hostDialogBox, "destroy",
+                      G_CALLBACK (hostDestroyCallback), NULL);
 
-        /* Instead of gtk_container_add, we pack this button into the
-         * table, which has been packed into the window. */
-        gtk_table_attach(GTK_TABLE (table), child, 0, 1, 1, 2,
-                         XOPTIONS, YOPTIONS, XPADDING, YPADDING );
+    box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 5);
+    gtk_widget_set_margin_start  (box, 5);
+    gtk_widget_set_margin_end    (box, 5);
+    gtk_widget_set_margin_top    (box, 5);
+    gtk_widget_set_margin_bottom (box, 5);
+    gtk_window_set_child (GTK_WINDOW (hostDialogBox), box);
 
-        /* And now the non-editable text box to show it. */
-        portEntry = gtk_entry_new ();
-        gtk_editable_set_editable(GTK_EDITABLE (portEntry), true);
-        gtk_entry_set_text(GTK_ENTRY (portEntry), hostPort );
-        gtk_signal_connect (GTK_OBJECT(portEntry), "activate",
-                            GTK_SIGNAL_FUNC(hostOkCallback), NULL);
+    grid = gtk_grid_new ();
+    gtk_grid_set_row_spacing (GTK_GRID (grid), YPADDING);
+    gtk_grid_set_column_spacing (GTK_GRID (grid), XPADDING);
+    gtk_box_append (GTK_BOX (box), grid);
 
-        /* Instead of gtk_container_add, we pack this text entry into the
-         * table, which has been packed into the window. */
-        gtk_table_attach(GTK_TABLE (table), portEntry, 1, 2, 1, 2,
-                         XOPTIONS, YOPTIONS, XPADDING, YPADDING );
-    }
-    {
-        okButton = gtk_button_new_from_stock (GTK_STOCK_OK);
-        /* Connect the "clicked" signal of the button to our callback */
-        g_signal_connect (G_OBJECT (okButton), "clicked",
-                          G_CALLBACK (hostOkCallback), (gpointer) "OK");
-        gtk_box_pack_start (GTK_BOX (GTK_DIALOG (hostDialogBox)->action_area),
-                            okButton, TRUE, TRUE, 0);
-    }
-    {
-        cancelButton = gtk_button_new_from_stock (GTK_STOCK_CANCEL);
-        /* Connect the "clicked" signal of the button to our callback */
-        g_signal_connect (G_OBJECT (cancelButton), "clicked",
-                          G_CALLBACK (hostCancelCallback), (gpointer) "Cancel");
-        gtk_box_pack_start (GTK_BOX (GTK_DIALOG (hostDialogBox)->action_area),
-                            cancelButton, TRUE, TRUE, 0);
-    }
+    hostPair (grid, 0, "Host", &hostEntry, hostName);
+    hostPair (grid, 1, "Port", &portEntry, hostPort);
 
-    /* Always remember this step, this tells GTK that our preparation
-     * for this window is complete, and it can now be displayed. */
-    gtk_widget_show_all (hostDialogBox);
+    buttonBox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
+    gtk_widget_set_halign (buttonBox, GTK_ALIGN_END);
+    gtk_box_append (GTK_BOX (box), buttonBox);
+
+    okButton = gtk_button_new_with_label ("OK");
+    g_signal_connect (okButton, "clicked",
+                      G_CALLBACK (hostOkCallback), NULL);
+    gtk_box_append (GTK_BOX (buttonBox), okButton);
+
+    cancelButton = gtk_button_new_with_label ("Cancel");
+    g_signal_connect (cancelButton, "clicked",
+                      G_CALLBACK (hostCancelCallback), NULL);
+    gtk_box_append (GTK_BOX (buttonBox), cancelButton);
+
+    gtk_window_present (GTK_WINDOW (hostDialogBox));
 }
 
 /* Some properties string arrays for the About dialog. */
@@ -686,9 +705,9 @@ gchar *authors[2] =     { "Charles Curley, http://www.charlescurley.com/", NULL 
 gchar *documentors[2] = { "Charles Curley, http://www.charlescurley.com/", NULL };
 gchar commentLine[STRINGBUFFSIZE];
 
-static void aboutDialog( gpointer   callback_data,
-                         guint      callback_action,
-                         GtkWidget *menu_item ) {
+static void aboutAction( GSimpleAction *action,
+                         GVariant      *parameter,
+                         gpointer       data ) {
     (void) snprintf (commentLine, sizeof (commentLine),
                      "A simple GTK+ GPS monitor.\n\n"
                      "Grey: No GPS daemon.\nRed: No fix.\n"
@@ -713,165 +732,323 @@ static void aboutDialog( gpointer   callback_data,
                            NULL);
 }
 
-/* Build the menu */
-static GtkItemFactoryEntry menu_items[] = {
-    /* menu hierarchy             Accel    Function    action    Type  */
-    { "/_File",                      NULL,        NULL,       0, "<Branch>" },
-    { "/File/_Font",            "<ctrl>f",     setFont,       0, "<StockItem>", GTK_STOCK_SELECT_FONT },
-    { "/File/_Save",            "<ctrl>s",   saveState,       0, "<StockItem>", GTK_STOCK_SAVE },
-    { "/File/_Quit",            "<ctrl>q",     destroy,       0, "<StockItem>", GTK_STOCK_QUIT },
-    { "/_Units",                     NULL,        NULL,       0, "<Branch>" },
-    { "/Units/_Metric",         "<ctrl>m",    setUnits,  METRIC, "<RadioItem>"          },
-    { "/Units/_US",             "<ctrl>i",    setUnits,      US, "/Units/Metric"        },
-    { "/Units/_Knots",          "<ctrl>k",    setUnits,   KNOTS, "/Units/Metric"        },
-    { "/Units/Sep",                  NULL,        NULL,       0, "<Separator>"          },
-    { "/Units/_Gmt",            "<ctrl>g",      setGmt,    true, "<RadioItem>"          },
-    { "/Units/_Local",          "<ctrl>l",      setGmt,   false, "/Units/Gmt"           },
-    { "/Units/Sep",                  NULL,        NULL,       0, "<Separator>"          },
-    { "/Units/_True",           "<ctrl>t",      setMag,   false, "<RadioItem>"          },
-    { "/Units/Magn_etic",       "<ctrl>e",      setMag,    true, "/Units/True"          },
-    { "/_Degrees",                   NULL,        NULL,       0, "<Branch>" },
-    { "/Degrees/_ddd.dddddd",   "<ctrl>d",  setDegrees, DEGREES, "<RadioItem>"          },
-    { "/Degrees/ddd _mm.mmmm",  "<ctrl>n",  setDegrees, MINUTES, "/Degrees/ddd.dddddd"  },
-    { "/Degrees/ddd mm _ss.ss", "<ctrl>s",  setDegrees, SECONDS, "/Degrees/ddd.dddddd"  },
-    { "/_Host",                      NULL,        NULL,       0, "<Branch>" },
-    { "/_Host/_Resynch",        "<ctrl>r",  resynchWrapper,   0, "<StockItem>", GTK_STOCK_REFRESH },
-    { "/_Host/_Host",           "<ctrl>h",  hostDialog,       0, "<StockItem>", GTK_STOCK_NETWORK },
-    { "/_Help",                      NULL,        NULL,       0, "<Branch>" },
-    { "/_Help/_About",          "<ctrl>a", aboutDialog,       0, "<StockItem>", GTK_STOCK_ABOUT },
-};
+/* The menu is built as a GMenu model in buildMenuModel (); the actions
+ * it refers to are registered in setupActions (). */
 
-/* Now some functions for the menu */
-static void setUnits( gpointer   callback_data,
-                      guint      callback_action,
-                      GtkWidget *menu_item ) {
-    units = callback_action;
+/* Now some functions for the menu. The mutually-exclusive groups are
+ * string-state radio actions; each change-state handler stashes the
+ * chosen value in the C global the rest of the program already uses. */
+static void unitsChangeState( GSimpleAction *action,
+                              GVariant      *value,
+                              gpointer       data ) {
+    units = g_variant_get_string (value, NULL)[0];
+    g_simple_action_set_state (action, value);
 }
 
-static void setGmt( gpointer   callback_data,
-                    guint      callback_action,
-                    GtkWidget *menu_item ) {
-    gmt = callback_action;
+static void angleChangeState( GSimpleAction *action,
+                              GVariant      *value,
+                              gpointer       data ) {
+    angle = g_variant_get_string (value, NULL)[0];
+    g_simple_action_set_state (action, value);
 }
 
-static void setMag( gpointer   callback_data,
-                    guint      callback_action,
-                    GtkWidget *menu_item ) {
-    magnetic = callback_action;
+static void gmtChangeState( GSimpleAction *action,
+                            GVariant      *value,
+                            gpointer       data ) {
+    gmt = (g_variant_get_string (value, NULL)[0] == 'g');
+    g_simple_action_set_state (action, value);
 }
 
-static void setDegrees( gpointer   callback_data,
-                        guint      callback_action,
-                        GtkWidget *menu_item ) {
-    angle = callback_action;
+static void magneticChangeState( GSimpleAction *action,
+                                 GVariant      *value,
+                                 gpointer       data ) {
+    magnetic = (g_variant_get_string (value, NULL)[0] == 'm');
+    g_simple_action_set_state (action, value);
 }
 
-static void saveState( gpointer   callback_data,
-                       guint      callback_action,
-                       GtkWidget *menu_item ) {
+static void saveAction( GSimpleAction *action,
+                        GVariant      *parameter,
+                        gpointer       data ) {
     gchar *results;
     if (haveHome) {
         results = saveKeyFile (keyFile);
-        gtk_progress_bar_set_text (progress, results);
+        gtk_label_set_text (progressLabel, results);
     }
 }
 
-static void fontApplyCallback (GtkWidget *widget,
-                               gpointer   data) {
-    gchar *theFont = NULL;
+static void quitAction( GSimpleAction *action,
+                        GVariant      *parameter,
+                        gpointer       data ) {
+    cleanup_gps ();
+    gtk_window_close (GTK_WINDOW (window));
+}
 
-    theFont = gtk_font_selection_dialog_get_font_name
-              (GTK_FONT_SELECTION_DIALOG (fontDialog));
+/* CSS-escape a string for use inside a double-quoted CSS string
+ * (escape backslash and double-quote). The caller frees the result.
+ * Without this a font family name containing a quote or backslash --
+ * e.g. from a hand-edited config -- could break out of, or inject
+ * into, the generated font CSS. */
+static gchar *cssEscapeString (const char *s) {
+    GString *out = g_string_new (NULL);
 
-    if (theFont != NULL) {
-        GtkRcStyle *style;
-        GdkColor *color;
-        gint i;
-
-        style = gtk_rc_style_new ();
-        pango_font_description_free (style->font_desc);
-        style->font_desc = pango_font_description_from_string (theFont);
-
-        for ( i=0; i < SIZE; i++) {
-            if (entries[i] != NULL) {
-                gtk_widget_modify_style (GTK_WIDGET (entries[i]), style);
-            }
+    for (; s != NULL && *s != '\0'; s++) {
+        if (*s == '\\' || *s == '"') {
+            g_string_append_c (out, '\\');
         }
-        gtk_widget_modify_style (GTK_WIDGET (progress), style);
-
-        g_free (theFont);
-
-        /* Now fox the color setting code. It actually changes colors
-         * only if the parameter color != the old color we saved last
-         * time it ran. */
-        color = oldColor;
-        oldColor = NULL;
-        setColor (color);
+        g_string_append_c (out, *s);
     }
+
+    return g_string_free (out, FALSE);
 }
 
-static void fontOkCallback (GtkWidget *widget,
-                            gpointer   data) {
-    fontApplyCallback (widget, data);
-    gtk_widget_destroy (fontDialog);
+/* Build a CSS fragment that sets the display font, scoped under the
+ * permanent .gnome-gps-ui class so the host dialog keeps the default
+ * font. The caller frees the result. */
+static gchar *pangoDescToCss (PangoFontDescription *desc) {
+    const char *family = pango_font_description_get_family (desc);
+    gint size = pango_font_description_get_size (desc);
+    gboolean absolute = pango_font_description_get_size_is_absolute (desc);
+    PangoWeight weight = pango_font_description_get_weight (desc);
+    PangoStyle pstyle = pango_font_description_get_style (desc);
+    gchar *familyCss;
+    gchar *sizeCss;
+    gchar *troughCss;
+    gchar *css;
+
+    if (size <= 0) {
+        sizeCss = g_strdup ("");
+    } else if (absolute) {
+        sizeCss = g_strdup_printf ("font-size: %dpx;", size / PANGO_SCALE);
+    } else {
+        sizeCss = g_strdup_printf ("font-size: %dpt;", size / PANGO_SCALE);
+    }
+
+    /* AIDEV-NOTE: Scale the satellite bar's height with the font so it
+     * stays the full height of the widget as the font grows (as it did in
+     * GTK2). Emit min-height in the SAME unit as the font-size (pt or px)
+     * so GTK resolves both through the identical -gtk-dpi conversion: a px
+     * height paired with a pt font desyncs under HiDPI or accessibility
+     * text-scaling, leaving the bar too short for the text. With no size
+     * (e.g. a family-only config font), emit nothing and fall back to the
+     * 1.4em base rule in on_activate (), which tracks the inherited font.
+     * 7/5 is ~1.4x line height; divide by PANGO_SCALE last to keep the
+     * rounding tight. */
+    if (size <= 0) {
+        troughCss = g_strdup ("");
+    } else {
+        troughCss = g_strdup_printf (
+                        " .gnome-gps-ui progressbar > trough,"
+                        " .gnome-gps-ui progressbar > trough > progress"
+                        " { min-height: %d%s; }",
+                        size * 7 / (PANGO_SCALE * 5),
+                        absolute ? "px" : "pt");
+    }
+
+    familyCss = cssEscapeString (family != NULL ? family : "Sans");
+    css = g_strdup_printf (
+              ".gnome-gps-ui entry, .gnome-gps-ui entry > text,"
+              " .gnome-gps-ui label.gnome-gps-bar-label {"
+              " font-family: \"%s\"; %s"
+              " font-weight: %d; font-style: %s; }%s",
+              familyCss,
+              sizeCss,
+              (int) weight,
+              pstyle == PANGO_STYLE_ITALIC ? "italic" :
+              pstyle == PANGO_STYLE_OBLIQUE ? "oblique" : "normal",
+              troughCss);
+
+    g_free (familyCss);
+    g_free (sizeCss);
+    g_free (troughCss);
+    return css;
 }
 
-static void setFont( gpointer   callback_data,
-                     guint      callback_action,
-                     GtkWidget *menu_item ) {
+/* (Re)load the font provider from currentFontDesc. */
+static void applyFontCss (void) {
+    gchar *css;
+
+    if (currentFontDesc == NULL || fontProvider == NULL) {
+        return;
+    }
+
+    css = pangoDescToCss (currentFontDesc);
+    gtk_css_provider_load_from_data (fontProvider, css, -1);
+    g_free (css);
+}
+
+/* Async finish for the font dialog. The source object is the
+ * GtkFontDialog, which we own and must unref here. */
+static void onFontChosen (GObject      *source,
+                          GAsyncResult *res,
+                          gpointer      data) {
+    PangoFontDescription *desc;
+
+    desc = gtk_font_dialog_choose_font_finish (GTK_FONT_DIALOG (source),
+           res, NULL);
+    if (desc != NULL) {
+        if (currentFontDesc != NULL) {
+            pango_font_description_free (currentFontDesc);
+        }
+        currentFontDesc = desc;
+        applyFontCss ();
+    }
+
+    g_object_unref (source);
+}
+
+static void fontAction( GSimpleAction *action,
+                        GVariant      *parameter,
+                        gpointer       data ) {
+    GtkFontDialog *dialog;
     gchar title[STRINGBUFFSIZE];
-    const gchar *fontName;
-    GtkStyle *style;
 
     (void) snprintf (title, STRINGBUFFSIZE, "%s: Select a font", baseName);
-    fontDialog = gtk_font_selection_dialog_new (title);
 
-    /* Now we jump through some hoops to get the existing font so we
-     * can set the default to it instead of the system default. We use
-     * one of the text entry widgets because their fonts are set by
-     * this dialog. */
-    style = gtk_widget_get_style (GTK_WIDGET (entries[TIME]));
-    fontName = pango_font_description_to_string (style->font_desc);
-
-    (void) gtk_font_selection_dialog_set_font_name
-    (GTK_FONT_SELECTION_DIALOG (fontDialog), fontName);
-    gtk_font_selection_dialog_set_preview_text (
-        GTK_FONT_SELECTION_DIALOG(fontDialog), timeString);
-
-    g_signal_connect (GTK_FONT_SELECTION_DIALOG (fontDialog)->ok_button,
-                      "clicked", G_CALLBACK (fontOkCallback),
-                      NULL);
-    g_signal_connect (GTK_FONT_SELECTION_DIALOG (fontDialog)->apply_button,
-                      "clicked", G_CALLBACK (fontApplyCallback),
-                      NULL);
-    g_signal_connect_swapped (GTK_FONT_SELECTION_DIALOG (fontDialog)->cancel_button,
-                              "clicked", G_CALLBACK (gtk_widget_destroy),
-                              fontDialog);
-
-    gtk_widget_show_all (fontDialog);
+    dialog = gtk_font_dialog_new ();
+    gtk_font_dialog_set_title (dialog, title);
+    gtk_font_dialog_choose_font (dialog, GTK_WINDOW (window),
+                                 currentFontDesc, NULL,
+                                 onFontChosen, NULL);
 }
 
-static gint nmenu_items = sizeof (menu_items) / sizeof (menu_items[0]);
+/* Build the menu bar model. Mutually-exclusive groups render as radios
+ * because each item carries a string target ("app.units::m" etc.) that
+ * GTK compares against the action's string state. */
+static GMenuModel *buildMenuModel (void) {
+    GMenu *menubarModel = g_menu_new ();
+    GMenu *fileMenu     = g_menu_new ();
+    GMenu *unitsMenu    = g_menu_new ();
+    GMenu *unitsSection = g_menu_new ();
+    GMenu *gmtSection   = g_menu_new ();
+    GMenu *magSection   = g_menu_new ();
+    GMenu *degreesMenu  = g_menu_new ();
+    GMenu *hostMenu     = g_menu_new ();
+    GMenu *helpMenu     = g_menu_new ();
 
-/* Returns a menubar widget from the menu */
-static GtkWidget *get_menubar_menu( GtkWidget  *window ) {
-    /* Make an accelerator group (shortcut keys) */
-    accel_group = gtk_accel_group_new ();
+    g_menu_append (fileMenu, "_Font", "app.font");
+    g_menu_append (fileMenu, "_Save", "app.save");
+    g_menu_append (fileMenu, "_Quit", "app.quit");
+    g_menu_append_submenu (menubarModel, "_File", G_MENU_MODEL (fileMenu));
 
-    /* Make an ItemFactory (that makes a menubar) */
-    item_factory = gtk_item_factory_new (GTK_TYPE_MENU_BAR, "<main>",
-                                         accel_group);
+    g_menu_append (unitsSection, "_Metric", "app.units::m");
+    g_menu_append (unitsSection, "_US",     "app.units::u");
+    g_menu_append (unitsSection, "_Knots",  "app.units::k");
+    g_menu_append_section (unitsMenu, NULL, G_MENU_MODEL (unitsSection));
 
-    /* This function generates the menu items. Pass the item factory,
-       the number of items in the array, the array itself, and any
-       callback data for the the menu items. */
-    gtk_item_factory_create_items (item_factory, nmenu_items, menu_items, NULL);
+    g_menu_append (gmtSection, "_Gmt",   "app.gmt::g");
+    g_menu_append (gmtSection, "_Local", "app.gmt::l");
+    g_menu_append_section (unitsMenu, NULL, G_MENU_MODEL (gmtSection));
 
-    /* Attach the new accelerator group to the window. */
-    gtk_window_add_accel_group (GTK_WINDOW (window), accel_group);
+    g_menu_append (magSection, "_True",     "app.magnetic::t");
+    g_menu_append (magSection, "Magn_etic", "app.magnetic::m");
+    g_menu_append_section (unitsMenu, NULL, G_MENU_MODEL (magSection));
+    g_menu_append_submenu (menubarModel, "_Units", G_MENU_MODEL (unitsMenu));
 
-    /* Finally, return the actual menu bar created by the item factory. */
-    return gtk_item_factory_get_widget (item_factory, "<main>");
+    g_menu_append (degreesMenu, "_ddd.dddddd",   "app.angle::d");
+    g_menu_append (degreesMenu, "ddd _mm.mmmm",  "app.angle::m");
+    g_menu_append (degreesMenu, "ddd mm _ss.ss", "app.angle::s");
+    g_menu_append_submenu (menubarModel, "_Degrees", G_MENU_MODEL (degreesMenu));
+
+    g_menu_append (hostMenu, "_Resynch", "app.resynch");
+    g_menu_append (hostMenu, "_Host",    "app.host");
+    g_menu_append_submenu (menubarModel, "_Host", G_MENU_MODEL (hostMenu));
+
+    g_menu_append (helpMenu, "_About", "app.about");
+    g_menu_append_submenu (menubarModel, "_Help", G_MENU_MODEL (helpMenu));
+
+    g_object_unref (fileMenu);
+    g_object_unref (unitsSection);
+    g_object_unref (gmtSection);
+    g_object_unref (magSection);
+    g_object_unref (unitsMenu);
+    g_object_unref (degreesMenu);
+    g_object_unref (hostMenu);
+    g_object_unref (helpMenu);
+
+    return G_MENU_MODEL (menubarModel);
+}
+
+/* Register the application actions and their accelerators. The radio
+ * groups are created stateful with their initial value from the current
+ * settings, applying the old setActive* default-normalization first. */
+static void setupActions (GtkApplication *application) {
+    GSimpleAction *a;
+    char buf[2] = { 0, 0 };
+    gsize i;
+
+    static const GActionEntry actionEntries[] = {
+        { "resynch", resynchAction, NULL, NULL, NULL },
+        { "host",    hostAction,    NULL, NULL, NULL },
+        { "about",   aboutAction,   NULL, NULL, NULL },
+        { "save",    saveAction,    NULL, NULL, NULL },
+        { "quit",    quitAction,    NULL, NULL, NULL },
+        { "font",    fontAction,    NULL, NULL, NULL },
+    };
+
+    static const struct {
+        const char *action;
+        const char *accel;
+    } accels[] = {
+        { "app.font",        "<Ctrl>f" },
+        { "app.save",        "<Ctrl>s" },
+        { "app.quit",        "<Ctrl>q" },
+        { "app.units::m",    "<Ctrl>m" },
+        { "app.units::u",    "<Ctrl>i" },
+        { "app.units::k",    "<Ctrl>k" },
+        { "app.gmt::g",      "<Ctrl>g" },
+        { "app.gmt::l",      "<Ctrl>l" },
+        { "app.magnetic::t", "<Ctrl>t" },
+        { "app.magnetic::m", "<Ctrl>e" },
+        { "app.angle::d",    "<Ctrl>d" },
+        { "app.angle::m",    "<Ctrl>n" },
+        { "app.angle::s",    "<Ctrl>c" },
+        { "app.resynch",     "<Ctrl>r" },
+        { "app.host",        "<Ctrl>h" },
+        { "app.about",       "<Ctrl>a" },
+    };
+
+    g_action_map_add_action_entries (G_ACTION_MAP (application),
+                                     actionEntries,
+                                     G_N_ELEMENTS (actionEntries), NULL);
+
+    if (units != METRIC && units != US && units != KNOTS) {
+        units = US;
+    }
+    buf[0] = units;
+    a = g_simple_action_new_stateful ("units", G_VARIANT_TYPE_STRING,
+                                      g_variant_new_string (buf));
+    g_signal_connect (a, "change-state", G_CALLBACK (unitsChangeState), NULL);
+    g_action_map_add_action (G_ACTION_MAP (application), G_ACTION (a));
+    g_object_unref (a);
+
+    if (angle != DEGREES && angle != MINUTES && angle != SECONDS) {
+        angle = DEGREES;
+    }
+    buf[0] = angle;
+    a = g_simple_action_new_stateful ("angle", G_VARIANT_TYPE_STRING,
+                                      g_variant_new_string (buf));
+    g_signal_connect (a, "change-state", G_CALLBACK (angleChangeState), NULL);
+    g_action_map_add_action (G_ACTION_MAP (application), G_ACTION (a));
+    g_object_unref (a);
+
+    buf[0] = gmt ? 'g' : 'l';
+    a = g_simple_action_new_stateful ("gmt", G_VARIANT_TYPE_STRING,
+                                      g_variant_new_string (buf));
+    g_signal_connect (a, "change-state", G_CALLBACK (gmtChangeState), NULL);
+    g_action_map_add_action (G_ACTION_MAP (application), G_ACTION (a));
+    g_object_unref (a);
+
+    buf[0] = magnetic ? 'm' : 't';
+    a = g_simple_action_new_stateful ("magnetic", G_VARIANT_TYPE_STRING,
+                                      g_variant_new_string (buf));
+    g_signal_connect (a, "change-state", G_CALLBACK (magneticChangeState), NULL);
+    g_action_map_add_action (G_ACTION_MAP (application), G_ACTION (a));
+    g_object_unref (a);
+
+    for (i = 0; i < G_N_ELEMENTS (accels); i++) {
+        const char *v[] = { accels[i].accel, NULL };
+        gtk_application_set_accels_for_action (application, accels[i].action, v);
+    }
 }
 
 /* Our display function. Nested case statements. */
@@ -891,8 +1068,8 @@ void showData (void) {
             gpsLost = true;
 
             gtk_progress_bar_set_fraction (progress, 0.0);
-            gtk_progress_bar_set_text (progress, "GPS lost!");
-            setColor (&NoGpsdColor);
+            gtk_label_set_text (progressLabel, "GPS lost!");
+            setColor ("no-gpsd");
 
             if (verbose) {
                 (void) fprintf (stderr, "gps lost.\n");
@@ -926,7 +1103,7 @@ void showData (void) {
                 (void) strcpy (tmpBuff, "GPS Found!");
             }
             sendWatch ();
-            gtk_progress_bar_set_text (progress, tmpBuff);
+            gtk_label_set_text (progressLabel, tmpBuff);
             if (verbose) {
                 (void) snprintf(tmpBuff, sizeof(tmpBuff),
                                 "driver = %s: subtype = %s%s: activated = %lld",
@@ -988,20 +1165,20 @@ void showData (void) {
     }
 
     if ((gpsdata.set & SPEED_SET)
-        && isfinite (gpsdata.fix.speed)) {
+            && isfinite (gpsdata.fix.speed)) {
         formatSpeed (gpsdata.fix.speed);
         gpsdata.set &= ~(SPEED_SET);
     }
 
     if (magnetic == false) {
         if ((gpsdata.set & TRACK_SET)
-            && isfinite (gpsdata.fix.track)) {
+                && isfinite (gpsdata.fix.track)) {
             formatTrack (gpsdata.fix.track);
             gpsdata.set &= ~(TRACK_SET);
         }
     } else {
         if ((gpsdata.set & MAGNETIC_TRACK_SET)
-            && isfinite (gpsdata.fix.magnetic_track)) {
+                && isfinite (gpsdata.fix.magnetic_track)) {
             formatTrack (gpsdata.fix.magnetic_track);
             gpsdata.set &= ~(MAGNETIC_TRACK_SET);
         }
@@ -1043,7 +1220,7 @@ void showData (void) {
                                  "No satellites visible, no fix.");
             }
         }
-        gtk_progress_bar_set_text (progress, banner);
+        gtk_label_set_text (progressLabel, banner);
 
         if (verbose) {
             (void) printf ("set 0x%08x, %s\n", (unsigned int) gpsdata.set,
@@ -1064,7 +1241,7 @@ void showData (void) {
 
         /* Condition the mode. */
         if (0 > mode ||
-            SIZEMODESTRINGS <= mode) {
+                SIZEMODESTRINGS <= mode) {
             mode = 0;
         }
 
@@ -1072,20 +1249,20 @@ void showData (void) {
 
             switch (mode) {
             case MODE_NOT_SEEN:
-                setColor (&NoFixColor);
+                setColor ("no-fix");
                 (void) strcpy (fixBuff, "Fix not yet seen");
                 break;
 
             case MODE_NO_FIX:
-                setColor (&NoFixColor);
+                setColor ("no-fix");
                 (void) strcpy (fixBuff, "No fix yet");
                 break;
 
             case MODE_2D:
-                setColor (&TwoDFixColor);
+                setColor ("gps-2d");
                 if ((gpsdata.set & LATLON_SET)
-                    && isfinite(gpsdata.fix.latitude)
-                    && isfinite(gpsdata.fix.longitude)) {
+                        && isfinite(gpsdata.fix.latitude)
+                        && isfinite(gpsdata.fix.longitude)) {
                     formatLat (gpsdata.fix.latitude);
                     formatLong (gpsdata.fix.longitude);
 
@@ -1099,10 +1276,10 @@ void showData (void) {
                 break;
 
             case MODE_3D:
-                setColor (&ThreeDFixColor);
+                setColor ("gps-3d");
                 if ((gpsdata.set & (LATLON_SET))
-                    && isfinite(gpsdata.fix.latitude)
-                    && isfinite(gpsdata.fix.longitude)) {
+                        && isfinite(gpsdata.fix.latitude)
+                        && isfinite(gpsdata.fix.longitude)) {
                     formatLat (gpsdata.fix.latitude);
                     formatLong (gpsdata.fix.longitude);
                 }
@@ -1111,9 +1288,9 @@ void showData (void) {
                    useful. Altitude is only meaningful on a 3D
                    fix. */
                 if ((gpsdata.set & (ALTITUDE_SET))
-                    && isfinite(gpsdata.fix.latitude)
-                    && isfinite(gpsdata.fix.longitude)
-                    && isfinite(gpsdata.fix.altitude)) {
+                        && isfinite(gpsdata.fix.latitude)
+                        && isfinite(gpsdata.fix.longitude)
+                        && isfinite(gpsdata.fix.altitude)) {
                     formatAltitude (gpsdata.fix.altitude);
                     if (verbose) {
 
@@ -1132,7 +1309,7 @@ void showData (void) {
                                 baseName,
                                 mode, modeString[mode],
                                 status);
-                setColor (&NoFixColor);
+                setColor ("no-fix");
                 return;
             } /* fix.mode */
         } /* MODE_SET */
@@ -1152,36 +1329,29 @@ void showData (void) {
 /* Build a pair of display widgets, a label followed by an entry
  * box. N.B.: This routine does not initialize the strings for the
  * widgets. Do that in the calling function with initStrings. */
-static void buildPair (gint index, gchar *labelText, GtkWidget *table,
+static void buildPair (gint index, gchar *labelText, GtkWidget *grid,
                        gint left, gint top) {
     GtkWidget *child;
-    left <<= 1;                 /* Convert pair co-ordinates to row
-                                 * co-ordinates by multiplying by
-                                 * 2. */
+    left <<= 1;                 /* Convert pair co-ordinates to column
+                                 * co-ordinates by multiplying by 2. */
 
-    /* Creates a new right aligned label. */
+    /* A right aligned label. */
     child = gtk_label_new( labelText );
-    gtk_misc_set_alignment(GTK_MISC(child), 1.0f, 0.5f);
+    gtk_widget_set_halign (child, GTK_ALIGN_END);
+    gtk_widget_set_valign (child, GTK_ALIGN_CENTER);
+    gtk_grid_attach (GTK_GRID (grid), child, left, top, 1, 1);
 
-    /* Instead of gtk_container_add, we pack this button into the
-     * table, which has been packed into the window. */
-    gtk_table_attach(GTK_TABLE (table), child, left, left+1, top, top+1,
-                     XOPTIONS, YOPTIONS, XPADDING, YPADDING );
-
-    /* And now the non-editable text box to show it. */
+    /* And now the text box to show the value. */
     child = gtk_entry_new ();
     gtk_editable_set_editable(GTK_EDITABLE (child), true);
 
-    /* Now ask for a slightly longer time widget. */
-    gtk_entry_set_width_chars (GTK_ENTRY (child), left ? 22 : 17);
+    /* Ask for a slightly longer time widget. */
+    gtk_editable_set_width_chars (GTK_EDITABLE (child), left ? 22 : 17);
+    gtk_widget_set_hexpand (child, TRUE);
+    gtk_widget_set_halign (child, GTK_ALIGN_FILL);
+    gtk_grid_attach (GTK_GRID (grid), child, left + 1, top, 1, 1);
 
-    /* Instead of gtk_container_add, we pack this text entry into the
-     * table, which has been packed into the window. */
-    gtk_table_attach(GTK_TABLE (table), child, left+1, left+2, top, top+1,
-                     XOPTIONS, YOPTIONS, XPADDING, YPADDING );
-
-    /* Add it to the table so we can access it later to change its
-     * text and color. */
+    /* Remember it so we can update its text and color later. */
     preserve (GTK_ENTRY (child), index);
 }
 
@@ -1220,7 +1390,6 @@ gchar *saveKeyFile (GKeyFile *keyFile) {
     gsize length = 0;
     gsize size = 0;
     gchar sandbox[128];
-    GtkStyle *style;
     const gchar *fontName;
     int ret = 0;                /* for return values from functions. */
 
@@ -1244,12 +1413,26 @@ gchar *saveKeyFile (GKeyFile *keyFile) {
     sandbox [0] = magnetic ? 't' : 'f';
     g_key_file_set_value (keyFile, baseName, "magnetic", sandbox);
 
-    /* Now we jump through some hoops to get the existing font so we
-     * save it. We use one of the text entry widgets because their
-     * fonts are set by this dialog. */
-    style = gtk_widget_get_style (GTK_WIDGET (entries[TIME]));
-    fontName = pango_font_description_to_string (style->font_desc);
-    g_key_file_set_value (keyFile, baseName, "font", fontName);
+    /* Save the display font. Prefer the user's chosen font; if none was
+     * chosen, fall back to the entry's effective font so we always write
+     * something, as the GTK2 version did. */
+    {
+        PangoFontDescription *desc = currentFontDesc;
+        gboolean ownDesc = FALSE;
+
+        if (desc == NULL) {
+            desc = pango_font_description_copy (
+                       pango_context_get_font_description (
+                           gtk_widget_get_pango_context (GTK_WIDGET (entries[TIME]))));
+            ownDesc = TRUE;
+        }
+        fontName = pango_font_description_to_string (desc);
+        g_key_file_set_value (keyFile, baseName, "font", fontName);
+        g_free ((gpointer) fontName);
+        if (ownDesc) {
+            pango_font_description_free (desc);
+        }
+    }
 
     string = g_key_file_to_data (keyFile, &length, NULL);
 
@@ -1292,107 +1475,8 @@ gchar *saveKeyFile (GKeyFile *keyFile) {
     }
 }
 
-/* Having initialized the angles, we had better set the menu entry to
- * selected as well. See the notes where 'units' is defined. */
-void setActiveAngle (void) {
-    switch (angle) {
-
-    /* Use the default to silently handle errors and fall through
-     * to the substitute case. */
-    default:
-        angle = DEGREES;
-
-    case DEGREES:
-        gtk_check_menu_item_set_active(
-            GTK_CHECK_MENU_ITEM (gtk_item_factory_get_item (item_factory, "/Degrees/ddd.dddddd")),
-            TRUE);
-        break;
-
-    case MINUTES:
-        gtk_check_menu_item_set_active(
-            GTK_CHECK_MENU_ITEM (gtk_item_factory_get_item (item_factory, "/Degrees/ddd mm.mmmm")),
-            TRUE);
-        break;
-
-    case SECONDS:
-        gtk_check_menu_item_set_active(
-            GTK_CHECK_MENU_ITEM (gtk_item_factory_get_item (item_factory, "/Degrees/ddd mm ss.ss")),
-            TRUE);
-        break;
-
-    }
-}
-
-/* Having initialized the units, we had better set the menu entry to
- * selected as well. See the notes where 'units' is defined. */
-void setActiveUnits (void) {
-    switch (units) {
-
-    /* Use the default to silently handle errors and fall through
-     * to the substitute case. */
-    default:
-        units = US;
-    case US:
-        gtk_check_menu_item_set_active(
-            GTK_CHECK_MENU_ITEM (gtk_item_factory_get_item (item_factory, "/Units/US")),
-            TRUE);
-        break;
-
-    case KNOTS:
-        gtk_check_menu_item_set_active(
-            GTK_CHECK_MENU_ITEM (gtk_item_factory_get_item (item_factory, "/Units/Knots")),
-            TRUE);
-        break;
-
-    case METRIC:
-        gtk_check_menu_item_set_active(
-            GTK_CHECK_MENU_ITEM (gtk_item_factory_get_item (item_factory, "/Units/Metric")),
-            TRUE);
-        break;
-    }
-}
-
-void setActiveGmt (void) {
-    switch (gmt) {
-
-    /* Use the default to silently handle errors and fall through
-     * to the substitute case. */
-    default:
-        gmt = true;
-    case true:
-        gtk_check_menu_item_set_active(
-            GTK_CHECK_MENU_ITEM (gtk_item_factory_get_item (item_factory, "/Units/Gmt")),
-            TRUE);
-        break;
-
-    case false:
-        gtk_check_menu_item_set_active(
-            GTK_CHECK_MENU_ITEM (gtk_item_factory_get_item (item_factory, "/Units/Local")),
-            TRUE);
-        break;
-    }
-}
-
-void setActiveMagnetic (void) {
-    switch (magnetic) {
-
-    /* Use the default to silently handle errors and fall through
-     * to the substitute case. */
-    default:
-        magnetic = true;
-    case true:
-        gtk_check_menu_item_set_active(
-            GTK_CHECK_MENU_ITEM (gtk_item_factory_get_item (item_factory, "/Units/Magnetic")),
-            TRUE);
-        break;
-
-    case false:
-        gtk_check_menu_item_set_active(
-            GTK_CHECK_MENU_ITEM (gtk_item_factory_get_item (item_factory, "/Units/True")),
-            TRUE);
-        break;
-    }
-}
+/* The menu radios are initialized from these settings by the GActions
+ * created in setupActions (); the old setActive* helpers are gone. */
 
 /* A filter for scanning the main directory. Return true if the target
  * directory exists. */
@@ -1410,6 +1494,158 @@ int filter(const struct dirent *entry) {
     ret = S_ISDIR (DTTOIF (entry->d_type));
 
     return (ret);
+}
+
+/* Build the user interface and wire up gpsd. Called once when the
+ * GtkApplication is activated. */
+static void on_activate (GtkApplication *application, gpointer data) {
+    GtkCssProvider *provider;
+    GMenuModel *menuModel;
+
+    /* Main window. */
+    window = gtk_application_window_new (application);
+    (void) snprintf (titleBuff, STRINGBUFFSIZE,
+                     "%s: a simple GTK+ GPS monitor", baseName);
+    gtk_window_set_title (GTK_WINDOW (window), titleBuff);
+    gtk_window_set_icon_name (GTK_WINDOW (window), "gnome-gps");
+    g_signal_connect (window, "close-request",
+                      G_CALLBACK (on_close_request), NULL);
+
+    /* Fix-state background colors, applied via a CSS provider on the
+     * default display and selected by a class on the root container. */
+    /* AIDEV-NOTE: GTK4 draws a GtkProgressBar as a node tree
+     * (progressbar > trough > progress). We paint the fix-state colour
+     * on the "progressbar" node and its "trough" so the whole widget
+     * area is covered; the "progress" (filled) node is deliberately NOT
+     * painted, so the theme's progress colour shows the
+     * satellites-used/visible fraction over the fix-coloured trough, as
+     * GTK2 did. The bar's own "text" node is hidden in the layout (the
+     * readout is drawn by a separate GtkLabel via GtkOverlay), so we
+     * don't bother painting it. */
+    provider = gtk_css_provider_new ();
+    gtk_css_provider_load_from_data (provider,
+                                     ".gps-3d, .gps-3d entry, .gps-3d entry > text,"
+                                     " .gps-3d progressbar, .gps-3d progressbar > trough,"
+                                     " .gps-3d menubar, .gps-3d menubar > item"
+                                     " { background: #00ff00; }"
+                                     ".gps-2d, .gps-2d entry, .gps-2d entry > text,"
+                                     " .gps-2d progressbar, .gps-2d progressbar > trough,"
+                                     " .gps-2d menubar, .gps-2d menubar > item"
+                                     " { background: #ffff00; }"
+                                     ".no-fix, .no-fix entry, .no-fix entry > text,"
+                                     " .no-fix progressbar, .no-fix progressbar > trough,"
+                                     " .no-fix menubar, .no-fix menubar > item"
+                                     " { background: #ff0000; }"
+                                     ".no-gpsd, .no-gpsd entry, .no-gpsd entry > text,"
+                                     " .no-gpsd progressbar, .no-gpsd progressbar > trough,"
+                                     " .no-gpsd menubar, .no-gpsd menubar > item"
+                                     " { background: #808080; }"
+                                     /* GTK4's theme gives the trough a thin
+                                      * min-height; size it relative to the font
+                                      * (1.4em) so it tracks the readout even when
+                                      * no explicit point size is set (size-less
+                                      * config font or default font) and under
+                                      * accessibility text-scaling. pangoDescToCss
+                                      * () emits a matching pt/px rule that
+                                      * overrides this when a sized font is set.
+                                      * The overlay readout label is transparent
+                                      * so the trough/progress show through it;
+                                      * we force black + full opacity to undo any
+                                      * theme dimming. */
+                                     " .gnome-gps-ui label.gnome-gps-bar-label"
+                                     " { background: transparent;"
+                                     " color: #000000; opacity: 1; }"
+                                     " .gnome-gps-ui progressbar > trough,"
+                                     " .gnome-gps-ui progressbar > trough > progress"
+                                     " { min-height: 1.4em; }"
+                                     " .gnome-gps-ui entry { box-shadow: none; }",
+                                     -1);
+    gtk_style_context_add_provider_for_display (gdk_display_get_default (),
+            GTK_STYLE_PROVIDER (provider), GTK_STYLE_PROVIDER_PRIORITY_USER);
+    colorProvider = provider;
+
+    /* A second provider, for the user-selected display font. */
+    fontProvider = gtk_css_provider_new ();
+    gtk_style_context_add_provider_for_display (gdk_display_get_default (),
+            GTK_STYLE_PROVIDER (fontProvider), GTK_STYLE_PROVIDER_PRIORITY_USER);
+
+    /* Vertical box: menu bar, grid of readings, then progress bar. */
+    vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 1);
+    gtk_widget_set_margin_start  (vbox, 1);
+    gtk_widget_set_margin_end    (vbox, 1);
+    gtk_widget_set_margin_top    (vbox, 1);
+    gtk_widget_set_margin_bottom (vbox, 1);
+    gtk_widget_add_css_class (vbox, "gnome-gps-ui");
+    gtk_window_set_child (GTK_WINDOW (window), vbox);
+
+    /* Menu bar. The bar takes its own reference to the model, so drop
+     * the one buildMenuModel () returned. */
+    setupActions (application);
+    menuModel = buildMenuModel ();
+    menubar = gtk_popover_menu_bar_new_from_model (menuModel);
+    g_object_unref (menuModel);
+    gtk_box_append (GTK_BOX (vbox), menubar);
+
+    /* Grid of label/value pairs. */
+    table = gtk_grid_new ();
+    gtk_grid_set_row_spacing (GTK_GRID (table), YPADDING);
+    gtk_grid_set_column_spacing (GTK_GRID (table), XPADDING);
+    gtk_widget_set_hexpand (table, TRUE);
+    gtk_widget_set_vexpand (table, TRUE);
+    gtk_box_append (GTK_BOX (vbox), table);
+
+    buildPair (LAT,   "Lat",   table, 0, 0);
+    buildPair (LONG,  "Long",  table, 1, 0);
+    buildPair (SPEED, "Speed", table, 0, 1);
+    buildPair (TRACK, "Track", table, 1, 1);
+    buildPair (ALT,   "Alt",   table, 0, 2);
+    buildPair (TIME,  "Time",  table, 1, 2);
+
+    initStrings ();
+
+    /* AIDEV-NOTE: The satellite progress bar with its readout label.
+     * GTK2 painted the text into the trough; GTK4 made the bar's "text"
+     * a sibling of "trough" so the built-in text sits ABOVE the bar and
+     * wastes vertical space. We restore the GTK2 look by hiding the
+     * bar's own text and floating a GtkLabel on top via GtkOverlay.
+     * The label is transparent (no background), tagged with a class so
+     * the colour/font providers can target it. */
+    {
+        GtkWidget *overlay = gtk_overlay_new ();
+
+        progress = (GtkProgressBar *) gtk_progress_bar_new ();
+        gtk_progress_bar_set_show_text (progress, FALSE);
+        gtk_progress_bar_set_fraction (progress, 0.0);
+
+        progressLabel = (GtkLabel *) gtk_label_new ("We've seen no data yet.");
+        gtk_widget_set_halign (GTK_WIDGET (progressLabel), GTK_ALIGN_CENTER);
+        gtk_widget_set_valign (GTK_WIDGET (progressLabel), GTK_ALIGN_CENTER);
+        gtk_widget_add_css_class (GTK_WIDGET (progressLabel),
+                                  "gnome-gps-bar-label");
+
+        gtk_overlay_set_child (GTK_OVERLAY (overlay), GTK_WIDGET (progress));
+        gtk_overlay_add_overlay (GTK_OVERLAY (overlay),
+                                 GTK_WIDGET (progressLabel));
+        /* Include the overlay label in size measurement so long status
+         * strings (e.g. the save-file path) or large fonts grow the bar/
+         * window instead of being clipped or drawn outside the overlay. */
+        gtk_overlay_set_measure_overlay (GTK_OVERLAY (overlay),
+                                         GTK_WIDGET (progressLabel), TRUE);
+        gtk_box_append (GTK_BOX (vbox), overlay);
+    }
+
+    /* Apply the saved font, if any. */
+    if (initialFont != NULL && strlen (initialFont) > 0) {
+        currentFontDesc = pango_font_description_from_string (initialFont);
+        applyFontCss ();
+    }
+
+    gtk_window_present (GTK_WINDOW (window));
+
+    /* Connect to gpsd and start polling. */
+    gpsdata.set = 0;
+    resynch ();
+    tag = g_timeout_add ((guint32) 100, gpsPoll, NULL);
 }
 
 int main ( int   argc,
@@ -1549,16 +1785,12 @@ int main ( int   argc,
 
             conf->magnetic = NULL;
             conf->magnetic = g_key_file_get_string ( keyFile, baseName,
-                                                "magnetic", NULL);
+                             "magnetic", NULL);
             if (conf->magnetic != NULL && strlen (conf->units) > 0) {
                 magnetic = (conf->magnetic[0] == 't') ? true : false;
             }
         }
     }
-
-    /* This is called in all GTK applications. Arguments are parsed
-     * from the command line and are returned to the application. */
-    gtk_init (&argc, &argv);
 
     /* for option processing. */
     char *optstring = "d:eghlkmp:tuv";
@@ -1647,124 +1879,21 @@ int main ( int   argc,
     }
 #endif
 
+    /* Hand the configured font off to the activate handler. */
+    initialFont = conf->font;
+
+    /* GtkApplication owns the main loop now. We parse our own options
+     * above, so don't pass argv on to GApplication. */
     {
-        /* create a new window */
-        window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+        GtkApplication *application;
 
-        /* Set our icon. */
-        gtk_window_set_icon ((GtkWindow *)window,
-                             gdk_pixbuf_new_from_inline ( -1, my_pixbuf,
-                                     false, NULL));
-
-        /* When the window is given the "delete_event" signal (this is
-         * given by the window manager, usually by the "close" option,
-         * or on the title bar), we ask it to call the delete_event ()
-         * function as defined above. */
-        g_signal_connect (G_OBJECT (window), "delete_event",
-                          G_CALLBACK (delete_event), (gpointer) "Done");
-
-        /* Here we connect the "destroy" event to a signal handler.
-         * This event occurs when we call gtk_widget_destroy() on the
-         * window, or if we return FALSE in the "delete_event"
-         * callback. */
-        g_signal_connect (G_OBJECT (window), "destroy",
-                          G_CALLBACK (destroy), (gpointer) "Destroy");
-
-        /* Sets the border width of the window. */
-        gtk_container_set_border_width (GTK_CONTAINER (window), 1);
-
-        /* And a title */
-        (void) snprintf (titleBuff, STRINGBUFFSIZE,
-                         "%s: a simple GTK+ GPS monitor", baseName);
-        gtk_window_set_title (GTK_WINDOW (window), titleBuff);
+        application = gtk_application_new ("com.charlescurley.gnome-gps",
+                                           G_APPLICATION_NON_UNIQUE);
+        g_signal_connect (application, "activate",
+                          G_CALLBACK (on_activate), NULL);
+        ret = g_application_run (G_APPLICATION (application), 0, NULL);
+        g_object_unref (application);
     }
-
-    /* Build a vertical box. Into it we will put the menu bar, and
-     * then the table containing all the labels and entry widgets. */
-    {
-        vbox = gtk_vbox_new (FALSE, 1);
-        gtk_container_set_border_width (GTK_CONTAINER (vbox), 1);
-        gtk_container_add (GTK_CONTAINER (window), vbox);
-    }
-
-    /* Build and show the menu bar */
-    {
-        menubar = get_menubar_menu (window);
-        gtk_box_pack_start (GTK_BOX (vbox), menubar, FALSE, TRUE, 0);
-    }
-
-    /* Build the table we'll stuff everything into. Heterogeneous
-     * layout, please. */
-    {
-        table = gtk_table_new( GGROWS, GGCOLS, FALSE );
-
-        /* Put the table in the vbox */
-        gtk_container_add (GTK_CONTAINER (vbox), table);
-    }
-
-    /* Build pairs of widgets: a label, followed by a text entry
-     * box. The table size is GGROWS x GGCOLS, based on a count of
-     * widgets in the row. Co-ordinates here are for pairs, so the
-     * column numbers are half what they would be for widgets. 0,0 is
-     * the upper left, as with widgets. */
-
-    buildPair (LAT,     "Lat",     table, 0, 0);
-    buildPair (LONG,    "Long",    table, 1, 0);
-    buildPair (SPEED,   "Speed",   table, 0, 1);
-    buildPair (TRACK,   "Track",   table, 1, 1);
-    buildPair (ALT,     "Alt",     table, 0, 2);
-    buildPair (TIME,    "Time",    table, 1, 2);
-
-    initStrings ();
-
-    /* Set up the satellite progress bar. */
-    progress = (GtkProgressBar *) gtk_progress_bar_new ();
-    gtk_progress_bar_set_fraction (progress, 0.0);
-    gtk_progress_bar_set_text (progress, "We've seen no data yet.");
-    gtk_box_pack_end (GTK_BOX (vbox), GTK_WIDGET (progress), FALSE, TRUE, 0);
-
-    if (conf->font != NULL && strlen (conf->font) > 0) {
-        GtkRcStyle *style;
-
-        style = gtk_rc_style_new ();
-        pango_font_description_free (style->font_desc);
-        style->font_desc = pango_font_description_from_string (conf->font);
-
-        for ( i=0; i < SIZE; i++) {
-            if (entries[i] != NULL) {
-                gtk_widget_modify_style (GTK_WIDGET (entries[i]), style);
-                /* Reset the width of the widget. */
-            }
-        }
-        gtk_widget_modify_style (GTK_WIDGET (progress), style);
-    }
-
-    /* setColor (&NoGpsdColor); */
-
-    /* Always remember this step, this tells GTK that our preparation
-     * for this window is complete, and it can now be displayed. */
-    gtk_widget_show_all (window);
-
-    setActiveAngle ();
-    setActiveUnits ();
-    setActiveGmt ();
-    setActiveMagnetic ();
-
-    /* (void) printf ("Host is %s, port is %s\n", host, port); */
-
-    /* just in case... */
-    gpsdata.set = 0;
-
-    resynch ();
-
-    /* Now set up our idle function, in milliseconds. 300 is too long,
-     * so some day this may require further trimming. */
-    tag = g_timeout_add ((guint32)100, gpsPoll, NULL);
-
-    /* All GTK applications must have a gtk_main(). Control ends here
-     * and waits for an event to occur (like a key press or mouse
-     * event). */
-    gtk_main ();
 
     if (baseName != NULL) {
         g_free((gpointer) baseName);
