@@ -1,4 +1,4 @@
-This program is a straightforward gps monitor program using the GTK+
+This program is a straightforward gps monitor program using the GTK+ 4
 windowing system.
 
 ![gnome-gps program](pix/gnome-gps.1.png)
@@ -45,9 +45,13 @@ GUI. These override the defaults and saved values.
 
 -e Track/heading will be reported as magnetic
 
+-g GMT time.
+
 -h Print a terse help message.
 
 -k Speed in knots
+
+-l Local time
 
 -m Metric measures
 
@@ -62,19 +66,7 @@ GUI. These override the defaults and saved values.
 To compile, you should get everything you need with:
 
 ```shell
-apt install gcc libgps-dev libgtk2.0-dev make
-```
-
-Otherwise, you need:
-
-```shell
-apt install gcc make libgtk2.0-dev libgps-dev
-```
-
-except on debian squeeze, where you may need:
-
-```shell
-apt -t squeeze-backports install gcc make libgtk2.0-dev
+apt install gcc libgps-dev libgtk-4-dev make
 ```
 
 There is a make target "validate". This is set up to run astyle so you
