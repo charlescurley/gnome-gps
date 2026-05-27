@@ -138,7 +138,7 @@ gboolean magnetic = false;      /* Display true or magnetic heading? */
 /* Display altitude above mean sea level (MSL) or height above
  * elipsoid (HAE), probably WSG 84. */
 enum altSpec {HAE = 'h', MSL = 'm' } altSpec;
-char altitudeFlag = HAE;
+char altitudeFlag = MSL;
 
 gchar *fixBuffInit = "No fix seen yet";
 gchar *timeStringInit = "No time yet";
@@ -1355,8 +1355,8 @@ void setActiveAngle (void) {
 /* Similarly for altitude HAE vs MSL */
 void setActiveAltitude (void) {
     switch (altitudeFlag) {
-    /* default: */
-    /*     altitudeFlag = MSL; */
+    default:
+        altitudeFlag = MSL;
 
     case MSL:
         gtk_check_menu_item_set_active(
